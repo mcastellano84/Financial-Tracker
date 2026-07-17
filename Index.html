@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="theme-color" content="#20261F">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='34' fill='%2320261F'/%3E%3Ctext x='50%25' y='66%25' font-family='Georgia,serif' font-size='104' fill='%23E4DFD1' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E">
+<title>Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+  :root {
+    --paper: #E4DFD1; --surface: #F2EEE3; --ink: #20261F; --green: #2E5E45;
+    --rust: #A13D2C; --amber: #B9772A; --steel: #3B5568; --rule: #C9C0A9; --muted: #7A7568;
+    --tape-bg: #20261F; --tape-text: #E4DFD1;
+  }
+  html.theme-dark {
+    --paper: #1C1F1A; --surface: #262A22; --ink: #EDE8DA; --green: #5FA980;
+    --rust: #E0776A; --amber: #E0A25C; --steel: #7FA5C4; --rule: #45473C; --muted: #9A9484;
+  }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif; color: var(--ink);
+    padding-top: env(safe-area-inset-top);
+  }
+  .app-root { max-width: 480px; margin: 0 auto; padding-bottom: calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; position: relative; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .ledger-tape { background: var(--tape-bg); color: var(--tape-text); padding: 22px 20px 28px; margin-bottom: 8px; }
+  .ledger-tape.small { padding: 16px 18px 22px; margin: 14px 0 8px; }
+  .tape-month { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .65; }
+  .tape-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; opacity: .6; margin-top: 6px; }
+  .tape-amount { font-family: 'Fraunces', serif; font-weight: 600; font-size: 40px; line-height: 1.1; margin-top: 2px; }
+  .tape-amount.neg { color: #E08A73; }
+  .tape-row { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11px; opacity: .7; margin-top: 10px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; margin-top: 12px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 12px; text-align: left; color: var(--ink); font-family: inherit; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 17px; margin-top: 8px; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .section { padding: 0 16px; margin-top: 20px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .section-head h4 { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; margin: 0; }
+  .link-btn { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--steel); background: none; border: none; padding: 0; font-family: inherit; }
+
+  .tab-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 16px 6px; }
+  .tab-header h2 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; margin: 0; }
+  .tab-sub { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .fab-inline { background: var(--green); color: var(--tape-text); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px; }
+
+  .register { padding: 0 16px; } .section .register { padding: 0; }
+  .register-row { display: flex; align-items: center; gap: 8px; padding: 11px 0; border-bottom: 1px dashed var(--rule); }
+  .register-row.clickable { cursor: pointer; }
+  .register-left { min-width: 0; }
+  .register-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .register-title.done { color: var(--muted); text-decoration: line-through; }
+  .register-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .register-leader { flex: 1; border-bottom: 1px dotted var(--rule); margin-bottom: 4px; min-width: 8px; }
+  .register-right { font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+  .check-toggle { background: none; border: none; padding: 0; display: flex; flex-shrink: 0; font-size: 20px; line-height: 1; }
+
+  .empty-state { color: var(--muted); font-size: 13px; padding: 18px 0; text-align: center; border: 1px dashed var(--rule); border-radius: 4px; margin: 0 16px; }
+  .section .empty-state { margin: 0; }
+
+  .goal-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px; margin: 0 16px 10px; }
+  .section .goal-card { margin: 0 0 10px; }
+  .goal-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .goal-name { font-weight: 500; } .goal-nums { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+  .goal-bar-track { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; opacity: .6; }
+  .goal-bar-fill { height: 100%; background: var(--green); }
+
+  .cat-bars { padding: 0 16px; margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .cat-bar-row { display: flex; align-items: center; gap: 8px; }
+  .cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cat-bar-label { font-size: 11.5px; width: 78px; flex-shrink: 0; color: var(--muted); }
+  .cat-bar-track { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; }
+  .cat-bar-amt { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; width: 54px; text-align: right; flex-shrink: 0; }
+
+  .loan-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px; margin: 0 16px 10px; cursor: pointer; }
+  .loan-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .loan-name { font-weight: 500; font-size: 14px; } .loan-balance { font-size: 15px; }
+  .loan-meta { display: flex; gap: 10px; font-size: 11px; color: var(--muted); margin-top: 5px; flex-wrap: wrap; }
+
+  .fine-print { font-size: 11px; color: var(--muted); padding: 0 16px; margin-top: 16px; line-height: 1.5; }
+  .insight-text { font-size: 13.5px; line-height: 1.55; margin: 0 0 10px; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--tape-bg); display: flex; overflow-x: auto; border-top: 1px solid #000; z-index: 20; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-item { flex: 1 0 auto; min-width: 62px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 8px; background: none; border: none; color: #8B8676; font-family: inherit; }
+  .nav-item.active { color: var(--tape-text); }
+  .nav-item .nav-icon { font-size: 17px; line-height: 1; }
+  .nav-item span.label { font-size: 9.5px; letter-spacing: .02em; }
+
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(32,38,31,.55); display: flex; align-items: flex-end; z-index: 50; }
+  .sheet-overlay.hidden { display: none; }
+  .sheet-panel { background: var(--paper); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 14px 14px 0 0; padding: 10px 18px calc(22px + env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; }
+  .sheet-handle { width: 36px; height: 4px; background: var(--rule); border-radius: 2px; margin: 4px auto 14px; }
+  .sheet-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sheet-title { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; margin: 0; }
+  .icon-btn { background: var(--surface); border: 1px solid var(--rule); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .field-label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .input { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; font-size: 14px; font-family: inherit; color: var(--ink); width: 100%; }
+  .input.mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .segmented { display: flex; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .segmented button { flex: 1; padding: 9px; background: var(--surface); border: none; font-size: 13px; color: var(--muted); font-family: inherit; }
+  .segmented button.seg-active { background: var(--green); color: var(--tape-text); font-weight: 500; }
+
+  .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .btn-primary { flex: 1; background: var(--green); color: var(--tape-text); border: none; border-radius: 4px; padding: 12px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; }
+  .btn-danger { background: none; border: 1px solid var(--rust); color: var(--rust); border-radius: 4px; padding: 12px 14px; font-size: 13px; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+  select.input { appearance: none; }
+  .loading-msg { padding: 40px; text-align: center; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .lock-screen { position: fixed; inset: 0; background: var(--paper); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lock-screen.hidden { display: none; }
+  .lock-box { width: 100%; max-width: 280px; text-align: center; }
+  .lock-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; margin-bottom: 16px; }
+  .lock-input { text-align: center; font-size: 20px; letter-spacing: 0.3em; margin-bottom: 4px; }
+  .onboarding-screen { position: fixed; inset: 0; background: var(--paper); z-index: 210; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .onboarding-screen.hidden { display: none; }
+  .onboarding-box { width: 100%; max-width: 340px; }
+  .onboarding-icon { font-size: 34px; margin-bottom: 14px; text-align: center; }
+  .onboarding-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; text-align: center; margin-bottom: 10px; }
+  .onboarding-body { font-size: 14px; line-height: 1.6; text-align: center; color: var(--ink); margin-bottom: 20px; }
+  .onboarding-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 20px; }
+  .onboarding-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rule); }
+  .onboarding-dot.active { background: var(--green); width: 16px; border-radius: 3px; }
+  .onboarding-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .onboarding-skip { background: none; border: none; color: var(--muted); font-size: 13px; font-family: inherit; padding: 10px; }
+  details.help-item { border-bottom: 1px dashed var(--rule); padding: 10px 0; }
+  details.help-item summary { font-size: 13.5px; font-weight: 500; cursor: pointer; list-style: none; }
+  details.help-item summary::-webkit-details-marker { display: none; }
+  details.help-item summary::before { content: '▸'; display: inline-block; margin-right: 6px; color: var(--muted); font-size: 11px; }
+  details.help-item[open] summary::before { content: '▾'; }
+  details.help-item p { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<div id="lock-screen" class="lock-screen hidden">
+  <div class="lock-box">
+    <div class="lock-title">&#128274; Enter PIN</div>
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="lock-input" class="input mono lock-input" autocomplete="off" onkeydown="if(event.key==='Enter') attemptUnlock()">
+    <div id="lock-error" class="fine-print" style="color:var(--rust); padding:0; min-height:16px; text-align:center;"></div>
+    <button class="btn-primary" style="width:100%; justify-content:center; margin-top:10px;" onclick="attemptUnlock()">Unlock</button>
+  </div>
+</div>
+<div id="onboarding-screen" class="onboarding-screen hidden">
+  <div class="onboarding-box" id="onboarding-box"></div>
+</div>
+<div class="app-root">
+  <div id="content"></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+<div class="sheet-overlay hidden" id="sheet-overlay" onclick="if(event.target===this) closeSheet()">
+  <div class="sheet-panel" id="sheet-panel"></div>
+</div>
+
+<script>
+/* ---------------- theme ---------------- */
+const THEME_KEY = 'ledger-theme-pref';
+let themePref = 'system';
+try { themePref = localStorage.getItem(THEME_KEY) || 'system'; } catch (e) {}
+function applyTheme(pref) {
+  const effective = pref === 'system'
+    ? ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light')
+    : pref;
+  document.documentElement.classList.toggle('theme-dark', effective === 'dark');
+  document.documentElement.style.colorScheme = effective;
+}
+applyTheme(themePref);
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (themePref === 'system') applyTheme('system'); });
+}
+function setTheme(pref) {
+  themePref = pref;
+  try { localStorage.setItem(THEME_KEY, pref); } catch (e) {}
+  applyTheme(pref);
+  if (state.tab === 'sync') renderAll();
+}
+
+/* ---------------- onboarding ---------------- */
+const ONBOARDING_KEY = 'ledger-seen-onboarding';
+let onboardingStep = 0;
+const ONBOARDING_SCREENS = [
+  { icon: '&#128213;', title: 'Welcome to Ledger', body: "A simple, private way to track your money — bills, spending, accounts, and more. Everything stays on this device; nothing is sent anywhere." },
+  { icon: '&#127974;', title: 'Accounts hold your balances', body: 'Add your checking and savings accounts first. Everything else in the app moves money in and out of these.' },
+  { icon: '&#128196;', title: 'Bills reduce, Paychecks add', body: 'Bills, subscriptions, and loan payments reduce an account balance when marked paid. Paychecks and deposits add to it. Spending just tracks what money went to.' },
+  { icon: '&#128202;', title: 'Savings, Loans &amp; Taxes', body: 'These are their own tools — track goals, payoff progress, and a rough tax estimate. Analytics ties it all together with trends and a monthly recap.' },
+  { icon: '&#8942;', title: 'Getting around', body: 'Overview, Accounts, Bills, and Spending are pinned in the bottom bar. Everything else lives under More. Repin and reorder these anytime from Settings.' },
+  { icon: '&#10003;', title: "You're set", body: "Start by adding an account, then a bill or two. You can revisit this tutorial anytime from Settings." },
+];
+function hasSeenOnboarding() { try { return localStorage.getItem(ONBOARDING_KEY) === '1'; } catch (e) { return true; } }
+function markOnboardingSeen() { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch (e) {} }
+function showOnboarding() {
+  onboardingStep = 0;
+  document.getElementById('onboarding-screen').classList.remove('hidden');
+  renderOnboardingStep();
+}
+function renderOnboardingStep() {
+  const s = ONBOARDING_SCREENS[onboardingStep];
+  const isLast = onboardingStep === ONBOARDING_SCREENS.length - 1;
+  document.getElementById('onboarding-box').innerHTML = `
+    <div class="onboarding-icon">${s.icon}</div>
+    <div class="onboarding-title">${s.title}</div>
+    <div class="onboarding-body">${s.body}</div>
+    <div class="onboarding-dots">${ONBOARDING_SCREENS.map((_,i) => `<span class="onboarding-dot ${i===onboardingStep?'active':''}"></span>`).join('')}</div>
+    <div class="onboarding-nav">
+      ${onboardingStep > 0 ? `<button class="onboarding-skip" onclick="onboardingBack()">&#8249; Back</button>` : `<button class="onboarding-skip" onclick="onboardingFinish()">Skip</button>`}
+      <button class="btn-primary" style="flex:none; padding:10px 20px;" onclick="${isLast ? 'onboardingFinish()' : 'onboardingNext()'}">${isLast ? 'Get started' : 'Next'}</button>
+    </div>
+  `;
+}
+function onboardingNext() { onboardingStep = Math.min(ONBOARDING_SCREENS.length - 1, onboardingStep + 1); renderOnboardingStep(); }
+function onboardingBack() { onboardingStep = Math.max(0, onboardingStep - 1); renderOnboardingStep(); }
+function onboardingFinish() {
+  markOnboardingSeen();
+  document.getElementById('onboarding-screen').classList.add('hidden');
+  renderAll();
+}
+function afterUnlock() {
+  if (!hasSeenOnboarding()) showOnboarding();
+  else renderAll();
+}
+
+/* ---------------- helpers ---------------- */
+const uid = () => Math.random().toString(36).slice(2, 10);
+const fmt = (n) => (Number(n) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const fmtShort = (n) => { const v = Number(n) || 0; return v < 0 ? '-' + fmt(Math.abs(v)) : fmt(v); };
+const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+const monthName = (d) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const ordinal = (n) => { const s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const CATS = [
+  { key: 'Housing', color: '#8A5A3B' }, { key: 'Utilities', color: '#6B5B95' },
+  { key: 'Insurance', color: '#4B6E7A' }, { key: 'Subscriptions', color: '#5C7A99' },
+  { key: 'Debt', color: '#7A3B3B' }, { key: 'Groceries', color: '#2E5E45' },
+  { key: 'Dining', color: '#B9772A' }, { key: 'Transport', color: '#3B5568' },
+  { key: 'Entertainment', color: '#A13D2C' }, { key: 'Health', color: '#1F7A6C' },
+  { key: 'Shopping', color: '#9C6B30' }, { key: 'Other', color: '#7A7568' },
+];
+const catColor = (c) => (CATS.find(x => x.key === c) || CATS[7]).color;
+const catOptions = (sel) => CATS.map(c => `<option value="${c.key}" ${c.key===sel?'selected':''}>${c.key}</option>`).join('');
+
+const BRACKETS = {
+  single: [{rate:.10,upTo:12400},{rate:.12,upTo:50400},{rate:.22,upTo:105700},{rate:.24,upTo:201775},{rate:.32,upTo:256225},{rate:.35,upTo:640600},{rate:.37,upTo:Infinity}],
+  mfj: [{rate:.10,upTo:24800},{rate:.12,upTo:100800},{rate:.22,upTo:211400},{rate:.24,upTo:403550},{rate:.32,upTo:512450},{rate:.35,upTo:768700},{rate:.37,upTo:Infinity}],
+  hoh: [{rate:.10,upTo:17700},{rate:.12,upTo:67450},{rate:.22,upTo:105700},{rate:.24,upTo:201775},{rate:.32,upTo:256200},{rate:.35,upTo:640600},{rate:.37,upTo:Infinity}],
+};
+const STD_DEDUCTION = { single: 16100, mfj: 32200, hoh: 24150 };
+const FILING_LABEL = { single: 'Single', mfj: 'Married filing jointly', hoh: 'Head of household' };
+function computeTax(taxable, status) {
+  const brackets = BRACKETS[status]; let tax = 0, last = 0;
+  for (const b of brackets) { if (taxable > last) { tax += (Math.min(taxable, b.upTo) - last) * b.rate; last = b.upTo; } else break; }
+  return Math.max(0, tax);
+}
+// 2026 Child Tax Credit ($2,200/child) + Credit for Other Dependents ($500 each), phases out $50 per $1,000 over threshold
+function computeCTC(numChildren, numOtherDeps, agi, filingStatus) {
+  let total = numChildren * 2200 + numOtherDeps * 500;
+  const threshold = filingStatus === 'mfj' ? 400000 : 200000;
+  if (agi > threshold) total = Math.max(0, total - Math.ceil((agi - threshold) / 1000) * 50);
+  return total;
+}
+// Simplified Child & Dependent Care Credit (Form 2441 rate schedule, ignores earned-income limitation)
+function careCreditRate(agi) {
+  if (agi <= 15000) return 0.35;
+  const steps = Math.ceil((agi - 15000) / 2000);
+  return Math.max(0.20, 0.35 - steps * 0.01);
+}
+function computeCareCredit(expenses, numQualifying, agi) {
+  const cap = numQualifying >= 2 ? 6000 : 3000;
+  return Math.round(Math.min(expenses, cap) * careCreditRate(agi));
+}
+// Official 2026 EITC parameters, IRS Rev. Proc. 2025-32
+const EITC_TABLE = {
+  0: { earnedIncomeAmount: 8680, maxCredit: 664, thresholdMFJ: 18140, completedMFJ: 26820, thresholdOther: 10860, completedOther: 19540 },
+  1: { earnedIncomeAmount: 13020, maxCredit: 4427, thresholdMFJ: 31160, completedMFJ: 58863, thresholdOther: 23890, completedOther: 51593 },
+  2: { earnedIncomeAmount: 18290, maxCredit: 7316, thresholdMFJ: 31160, completedMFJ: 65899, thresholdOther: 23890, completedOther: 58629 },
+  3: { earnedIncomeAmount: 18290, maxCredit: 8231, thresholdMFJ: 31160, completedMFJ: 70244, thresholdOther: 23890, completedOther: 62974 },
+};
+function computeEITC(earnedIncome, numChildren, filingStatus) {
+  if (earnedIncome <= 0) return 0;
+  const t = EITC_TABLE[Math.min(numChildren, 3)];
+  const isMFJ = filingStatus === 'mfj';
+  const threshold = isMFJ ? t.thresholdMFJ : t.thresholdOther;
+  const completed = isMFJ ? t.completedMFJ : t.completedOther;
+  const phaseInRate = t.maxCredit / t.earnedIncomeAmount;
+  const phaseOutRate = t.maxCredit / (completed - threshold);
+  let credit;
+  if (earnedIncome < t.earnedIncomeAmount) credit = earnedIncome * phaseInRate;
+  else if (earnedIncome <= threshold) credit = t.maxCredit;
+  else credit = Math.max(0, t.maxCredit - (earnedIncome - threshold) * phaseOutRate);
+  return Math.round(credit);
+}
+function payoffMonths(balance, apr, payment) {
+  const r = apr / 100 / 12;
+  if (payment <= 0) return null;
+  if (r === 0) return Math.ceil(balance / payment);
+  const interestOnly = balance * r;
+  if (payment <= interestOnly) return null;
+  return Math.ceil(-Math.log(1 - (r * balance) / payment) / Math.log(1 + r));
+}
+
+/* ---------------- storage ---------------- */
+const DEFAULT_DATA = {
+  accounts: [], bills: [], billPayments: [], transactions: [], goals: [], loans: [],
+  paychecks: [], incomeLog: [], transfers: [], budgets: {}, adjustments: [], borrowLog: [],
+  subscriptions: [], autopayDismissed: [], loanPayments: [],
+  tax: { filingStatus: 'single', income: '', otherDeductions: '', withholding: '', credits: '',
+         numChildren: '', numOtherDependents: '', careExpenses: '', careQualifying: '1' },
+};
+function loadData() {
+  try {
+    const raw = localStorage.getItem('ledger-app-data');
+    if (raw) return Object.assign({}, DEFAULT_DATA, JSON.parse(raw));
+  } catch (e) { console.error('load failed', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData() { try { localStorage.setItem('ledger-app-data', JSON.stringify(state.data)); } catch (e) { console.error('save failed', e); } }
+function adjustAccountBalance(accountId, delta) {
+  const acc = state.data.accounts.find(a => a.id === accountId);
+  if (acc) acc.balance = Number(acc.balance || 0) + delta;
+}
+function recordLoanPayment(loanId, amount, date, billId) {
+  const loan = state.data.loans.find(l => l.id === loanId);
+  if (!loan) return;
+  const balance = Number(loan.balance);
+  const interest = balance * (Number(loan.rate) || 0) / 100 / 12;
+  const principal = amount - interest;
+  loan.balance = Math.max(0, balance - principal);
+  const entry = { id: billId || uid(), loanId, amount, principal, interest, date };
+  state.data.loanPayments = [...(state.data.loanPayments||[]), entry];
+}
+function reverseLoanPayment(paymentId) {
+  const entry = (state.data.loanPayments||[]).find(p => p.id === paymentId);
+  if (!entry) return;
+  const loan = state.data.loans.find(l => l.id === entry.loanId);
+  if (loan) loan.balance = Number(loan.balance) + entry.principal;
+  state.data.loanPayments = state.data.loanPayments.filter(p => p.id !== paymentId);
+}
+
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function addMonths(d, delta) { return new Date(d.getFullYear(), d.getMonth() + delta, 1); }
+
+const state = { data: loadData(), tab: 'overview', billsMonth: startOfMonth(new Date()), spendingMonth: startOfMonth(new Date()), paycheckMonth: startOfMonth(new Date()), analyticsMonth: startOfMonth(new Date()), spendingFilter: { category: 'all', account: 'all', sort: 'date-desc' } };
+function shiftBillsMonth(delta) { state.billsMonth = addMonths(state.billsMonth, delta); renderAll(); }
+function shiftSpendingMonth(delta) { state.spendingMonth = addMonths(state.spendingMonth, delta); renderAll(); }
+function shiftPaycheckMonth(delta) { state.paycheckMonth = addMonths(state.paycheckMonth, delta); renderAll(); }
+function shiftAnalyticsMonth(delta) { state.analyticsMonth = addMonths(state.analyticsMonth, delta); renderAll(); }
+function monthNav(current, shiftFnName) {
+  return `<div style="display:flex; align-items:center; gap:6px;">
+    <button class="icon-btn" onclick="${shiftFnName}(-1)">&#8249;</button>
+    <span class="mono" style="font-size:11.5px; min-width:96px; text-align:center;">${monthName(current)}</span>
+    <button class="icon-btn" onclick="${shiftFnName}(1)">&#8250;</button>
+  </div>`;
+}
+
+/* ---------------- nav ---------------- */
+const TABS = [
+  { key: 'overview', label: 'Overview', icon: '&#8962;' },
+  { key: 'accounts', label: 'Accounts', icon: '&#127974;' },
+  { key: 'bills', label: 'Bills', icon: '&#128196;' },
+  { key: 'spending', label: 'Spending', icon: '&#128722;' },
+  { key: 'subscriptions', label: 'Subscriptions', icon: '&#128260;' },
+  { key: 'paycheck', label: 'Paycheck', icon: '&#128176;' },
+  { key: 'savings', label: 'Savings', icon: '&#128230;' },
+  { key: 'loans', label: 'Loans', icon: '&#128179;' },
+  { key: 'taxes', label: 'Taxes', icon: '&#128202;' },
+  { key: 'analytics', label: 'Analytics', icon: '&#128200;' },
+  { key: 'sync', label: 'Settings', icon: '&#9881;' },
+];
+const NAV_PINNED_KEY = 'ledger-nav-pinned';
+const DEFAULT_PINNED = ['overview','accounts','bills','spending'];
+const MAX_PINNED = 5;
+function getPinnedTabs() {
+  try { const raw = localStorage.getItem(NAV_PINNED_KEY); if (raw) { const arr = JSON.parse(raw).filter(k => TABS.some(t => t.key === k)); if (arr.length) return arr; } } catch (e) {}
+  return [...DEFAULT_PINNED];
+}
+function savePinnedTabs(arr) { try { localStorage.setItem(NAV_PINNED_KEY, JSON.stringify(arr)); } catch (e) {} }
+function toggleNavPin(key) {
+  let pinned = getPinnedTabs();
+  if (pinned.includes(key)) {
+    if (pinned.length <= 1) return;
+    pinned = pinned.filter(k => k !== key);
+  } else {
+    if (pinned.length >= MAX_PINNED) return;
+    pinned.push(key);
+  }
+  savePinnedTabs(pinned);
+  renderAll();
+}
+function moveNavPin(key, dir) {
+  const pinned = getPinnedTabs();
+  const i = pinned.indexOf(key), j = i + dir;
+  if (i < 0 || j < 0 || j >= pinned.length) return;
+  [pinned[i], pinned[j]] = [pinned[j], pinned[i]];
+  savePinnedTabs(pinned);
+  renderAll();
+}
+function renderNav() {
+  const pinned = getPinnedTabs();
+  const pinnedTabs = pinned.map(k => TABS.find(t => t.key === k)).filter(Boolean);
+  const moreTabs = TABS.filter(t => !pinned.includes(t.key));
+  let html = pinnedTabs.map(t => `
+    <button class="nav-item ${state.tab === t.key ? 'active' : ''}" onclick="setTab('${t.key}')">
+      <span class="nav-icon">${t.icon}</span><span class="label">${t.label}</span>
+    </button>`).join('');
+  if (moreTabs.length) {
+    const moreActive = moreTabs.some(t => t.key === state.tab);
+    html += `<button class="nav-item ${moreActive ? 'active' : ''}" onclick="openMoreSheet()">
+      <span class="nav-icon">&#8942;</span><span class="label">More</span>
+    </button>`;
+  }
+  document.getElementById('bottom-nav').innerHTML = html;
+}
+function openMoreSheet() {
+  const pinned = getPinnedTabs();
+  const moreTabs = TABS.filter(t => !pinned.includes(t.key));
+  const html = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-title-row"><h3 class="sheet-title">More</h3><button class="icon-btn" onclick="closeSheet()">&#10005;</button></div>
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px;">
+      ${moreTabs.map(t => `<button onclick="setTab('${t.key}'); closeSheet();" style="background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:14px 4px; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; font-family:inherit; color:var(--ink);"><span style="font-size:20px;">${t.icon}</span><span>${t.label}</span></button>`).join('')}
+    </div>
+  `;
+  openSheet(html);
+}
+function setTab(key) { state.tab = key; closeSheet(); renderAll(); }
+
+/* ---------------- sheet control ---------------- */
+function openSheet(html) {
+  document.getElementById('sheet-panel').innerHTML = html;
+  document.getElementById('sheet-overlay').classList.remove('hidden');
+}
+function closeSheet() { document.getElementById('sheet-overlay').classList.add('hidden'); document.getElementById('sheet-panel').innerHTML = ''; }
+function sheetShell(title, bodyHtml, deleteFn) {
+  return `
+    <div class="sheet-handle"></div>
+    <div class="sheet-title-row"><h3 class="sheet-title">${esc(title)}</h3><button class="icon-btn" onclick="closeSheet()">&#10005;</button></div>
+    ${bodyHtml}
+    <div class="sheet-actions">
+      ${deleteFn ? `<button class="btn-danger" onclick="${deleteFn}">&#128465; Delete</button>` : ''}
+      <button class="btn-primary" onclick="submitSheet()">&#10003; Save</button>
+    </div>`;
+}
+let submitSheet = () => {}; // reassigned per open form
+
+/* ---------------- render dispatch ---------------- */
+function renderAll() {
+  renderNav();
+  const c = document.getElementById('content');
+  if (state.tab === 'overview') c.innerHTML = renderOverview();
+  else if (state.tab === 'bills') c.innerHTML = renderBills();
+  else if (state.tab === 'subscriptions') c.innerHTML = renderSubscriptions();
+  else if (state.tab === 'spending') c.innerHTML = renderSpending();
+  else if (state.tab === 'accounts') c.innerHTML = renderAccounts();
+  else if (state.tab === 'paycheck') c.innerHTML = renderPaycheck();
+  else if (state.tab === 'savings') c.innerHTML = renderSavings();
+  else if (state.tab === 'loans') c.innerHTML = renderLoans();
+  else if (state.tab === 'taxes') c.innerHTML = renderTaxes();
+  else if (state.tab === 'analytics') c.innerHTML = renderAnalytics();
+  else if (state.tab === 'sync') c.innerHTML = renderSync();
+}
+function commit() { saveData(); renderAll(); }
+
+/* ---------------- Overview ---------------- */
+function get30DayEvents() {
+  const d = state.data;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const endDate = new Date(now); endDate.setDate(endDate.getDate() + 30);
+  const events = [];
+  d.bills.forEach(b => {
+    let dueDate;
+    if (b.recurrence === 'monthly') {
+      const day = Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth()));
+      dueDate = new Date(now.getFullYear(), now.getMonth(), day);
+      if (dueDate < now) {
+        const nextDay = Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth()+1));
+        dueDate = new Date(now.getFullYear(), now.getMonth()+1, nextDay);
+      }
+    } else {
+      dueDate = new Date(b.date + 'T00:00:00');
+    }
+    if (dueDate >= now && dueDate <= endDate) {
+      const dueMK = monthKey(dueDate);
+      if (!d.billPayments.includes(`${b.id}:${dueMK}`)) events.push({ date: dueDate, name: b.name, amount: -Number(b.amount||0) });
+    }
+  });
+  (d.subscriptions||[]).forEach(s => {
+    if (s.trackInBills || s.cycle === 'trial') return;
+    const next = subNextDate(s);
+    if (next >= now && next <= endDate) events.push({ date: next, name: s.name, amount: -Number(s.cost||0) });
+  });
+  d.paychecks.forEach(p => {
+    let payDate;
+    if (p.recurrence === 'monthly') {
+      const day = Math.min(p.payDay, daysInMonth(now.getFullYear(), now.getMonth()));
+      payDate = new Date(now.getFullYear(), now.getMonth(), day);
+      if (payDate < now) {
+        const nextDay = Math.min(p.payDay, daysInMonth(now.getFullYear(), now.getMonth()+1));
+        payDate = new Date(now.getFullYear(), now.getMonth()+1, nextDay);
+      }
+    } else {
+      payDate = new Date(p.date + 'T00:00:00');
+    }
+    if (payDate >= now && payDate <= endDate) {
+      const payMK = monthKey(payDate);
+      if (!d.incomeLog.some(l => l.id === `paycheck:${p.id}:${payMK}`)) events.push({ date: payDate, name: p.name, amount: Number(p.amount||0) });
+    }
+  });
+  return events.sort((a,b) => a.date - b.date);
+}
+function buildForecast() {
+  const d = state.data;
+  const startBalance = d.accounts.filter(a => a.type === 'checking').reduce((s,a) => s + Number(a.balance||0), 0);
+  const events = get30DayEvents();
+  const now = new Date(); now.setHours(0,0,0,0);
+  const byDate = {};
+  events.forEach(e => { const key = e.date.toDateString(); byDate[key] = (byDate[key]||0) + e.amount; });
+  const days = [];
+  let running = startBalance;
+  let lowPoint = { balance: startBalance, date: now };
+  let firstNegative = null;
+  for (let i = 0; i <= 30; i++) {
+    const day = new Date(now); day.setDate(day.getDate() + i);
+    if (i > 0 && byDate[day.toDateString()]) running += byDate[day.toDateString()];
+    days.push({ date: day, balance: running });
+    if (running < lowPoint.balance) lowPoint = { balance: running, date: day };
+    if (running < 0 && !firstNegative) firstNegative = day;
+  }
+  return { startBalance, days, events, lowPoint, firstNegative };
+}
+function renderForecastCard() {
+  const f = buildForecast();
+  const color = f.firstNegative ? 'var(--rust)' : 'var(--green)';
+  const chartPoints = [{ label: 'Today', value: f.startBalance }, ...[7,14,21,28,30].map(i => ({ label: `+${i}d`, value: f.days[Math.min(i, f.days.length-1)].balance }))];
+  const upcoming = f.events.slice(0,5);
+  return `
+    <div class="section" style="margin-top:14px;">
+      <div class="section-head"><h4>30-day forecast</h4><button class="link-btn" onclick="setTab('analytics')">Analytics &#8250;</button></div>
+      ${svgLineChart(chartPoints, { color })}
+      <p class="insight-text" style="margin-top:8px;">${f.firstNegative
+        ? `Checking is projected to go negative around ${f.firstNegative.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, dropping as low as ${fmt(f.lowPoint.balance)}.`
+        : `Checking is projected to stay positive over the next 30 days, with a low of ${fmt(f.lowPoint.balance)} around ${f.lowPoint.date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}.`}</p>
+      ${upcoming.length ? `<div class="register">${upcoming.map(e => `
+        <div class="register-row"><div class="register-left"><div class="register-title">${esc(e.name)}</div><div class="register-sub">${e.date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></div><div class="register-leader"></div><div class="register-right" style="color:${e.amount<0?'var(--rust)':'var(--green)'}">${e.amount<0?'-':'+'}${fmt(Math.abs(e.amount))}</div></div>`).join('')}</div>`
+        : `<div class="empty-state">No known upcoming bills, subscriptions, or paychecks in the next 30 days.</div>`}
+      <p class="fine-print">Estimate only, based on known recurring bills, subscriptions, and paychecks — not financial advice. Unplanned spending, manual balance edits, and one-off income aren't predicted.</p>
+    </div>
+  `;
+}
+function renderMonthlyCheckup() {
+  const d = state.data, now = new Date(), mk = monthKey(now);
+  const income = monthIncome(mk, d);
+  const spendByCat = categorySpend(mk, d);
+  const totalSpend = Object.values(spendByCat).reduce((a,b)=>a+b,0);
+  const topCat = Object.entries(spendByCat).sort((a,b)=>b[1]-a[1])[0];
+
+  const monthBills = d.bills.filter(b => b.recurrence === 'monthly' || (b.recurrence === 'once' && monthKey(new Date(b.date)) === mk));
+  const isPaidBill = b => d.billPayments.includes(`${b.id}:${mk}`);
+  const unpaidBills = monthBills.filter(b => !isPaidBill(b)).map(b => {
+    const day = b.recurrence === 'monthly' ? Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth())) : new Date(b.date).getDate();
+    return { ...b, _diff: day - now.getDate() };
+  });
+  const missedBills = unpaidBills.filter(b => b._diff < 0);
+  const dueSoonBills = unpaidBills.filter(b => b._diff >= 0 && b._diff <= 7);
+
+  const subsSoon = (d.subscriptions||[])
+    .map(s => ({ ...s, _days: daysUntil(subNextDate(s)) }))
+    .filter(s => s._days <= (s.reminderDays || 2));
+
+  const loanPaymentsThis = (d.loanPayments||[]).filter(p => monthKey(new Date(p.date)) === mk);
+  const principalPaidThis = loanPaymentsThis.reduce((s,p) => s + Number(p.principal||0), 0);
+  const loanTotal = d.loans.reduce((s,l) => s + Number(l.balance||0), 0);
+
+  const topGoal = d.goals[0];
+  const goalPct = topGoal ? Math.min(100, (Number(topGoal.current)/Math.max(1,Number(topGoal.target)))*100) : null;
+
+  const overBudget = Object.entries(spendByCat).filter(([cat,amt]) => (d.budgets||{})[cat] && amt > d.budgets[cat]);
+  const forecast = buildForecast();
+
+  const flags = [];
+  if (income > 0 && totalSpend > income) flags.push(`Spending (${fmt(totalSpend)}) has outpaced income (${fmt(income)}) so far this month.`);
+  if (missedBills.length) flags.push(`${missedBills.length} bill${missedBills.length!==1?'s':''} past due and still unpaid.`);
+  if (forecast.firstNegative) flags.push(`Checking is projected to go negative around ${forecast.firstNegative.toLocaleDateString('en-US',{month:'short',day:'numeric'})}.`);
+  if (overBudget.length) flags.push(`Over budget in ${overBudget.map(([c])=>c).join(', ')}.`);
+  const statusGood = flags.length === 0;
+
+  return `
+    <div class="section" style="margin-top:14px;">
+      <div class="section-head"><h4>Monthly checkup</h4></div>
+      <div class="ledger-tape small">
+        <div class="tape-label">${monthName(now)}</div>
+        <div class="tape-amount" style="font-size:21px;">${statusGood ? "&#127881; You're on track" : `&#9888; ${flags.length} thing${flags.length!==1?'s':''} to watch`}</div>
+      </div>
+      <p class="insight-text">Income ${fmt(income)} &middot; Spent ${fmt(totalSpend)}${topCat ? ` &middot; Biggest: ${esc(topCat[0])} (${fmt(topCat[1])})` : ''}</p>
+      ${flags.length ? `<div class="register">${flags.map(f => `<div class="register-row"><div class="register-left"><div class="register-title" style="color:var(--rust); font-weight:400; white-space:normal;">&#9888; ${f}</div></div></div>`).join('')}</div>` : `<p class="insight-text" style="color:var(--green);">No red flags so far this month — nice work.</p>`}
+      <details class="help-item">
+        <summary>More detail</summary>
+        <p>${dueSoonBills.length} bill${dueSoonBills.length!==1?'s':''} due in the next 7 days.${subsSoon.length ? ` ${subsSoon.length} subscription${subsSoon.length!==1?'s':''} renewing or ending soon.` : ''}</p>
+        ${loanPaymentsThis.length ? `<p>Paid ${fmt(principalPaidThis)} toward loan principal this month. Total loan balance: ${fmt(loanTotal)}.</p>` : (d.loans.length ? `<p>Total loan balance: ${fmt(loanTotal)}. No linked loan payments logged this month.</p>` : '')}
+        ${topGoal ? `<p>${esc(topGoal.name)} savings goal is ${goalPct.toFixed(0)}% complete (${fmt(topGoal.current)} of ${fmt(topGoal.target)}).</p>` : ''}
+      </details>
+    </div>
+  `;
+}
+function renderOverview() {
+  const d = state.data, now = new Date(), mk = monthKey(now);
+  const checkingTotal = d.accounts.filter(a => a.type === 'checking').reduce((s,a) => s + Number(a.balance||0), 0);
+  const savingsTotal = d.accounts.filter(a => a.type === 'savings').reduce((s,a) => s + Number(a.balance||0), 0);
+  const monthBills = d.bills.filter(b => b.recurrence === 'monthly' || (b.recurrence === 'once' && monthKey(new Date(b.date)) === mk));
+  const isPaid = b => d.billPayments.includes(`${b.id}:${mk}`);
+  const unpaid = monthBills.filter(b => !isPaid(b));
+  const dueSoon = unpaid
+    .map(b => {
+      const day = b.recurrence === 'monthly' ? Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth())) : new Date(b.date).getDate();
+      return { ...b, _day: day, _diff: day - now.getDate() };
+    })
+    .filter(b => b._diff >= -30 && b._diff <= 7)
+    .sort((a, b) => a._diff - b._diff);
+  const unpaidSum = unpaid.reduce((s,b) => s + Number(b.amount||0), 0);
+  const monthSpend = d.transactions.filter(t => monthKey(new Date(t.date)) === mk).reduce((s,t) => s + Number(t.amount||0), 0);
+  const monthIncome = d.incomeLog.filter(l => monthKey(new Date(l.date)) === mk).reduce((s,l) => s + Number(l.amount||0), 0)
+    + (d.adjustments||[]).filter(a => a.type === 'deposit' && monthKey(new Date(a.date)) === mk).reduce((s,a) => s + Number(a.amount||0), 0);
+  const netTape = checkingTotal - unpaidSum;
+  const loanTotal = d.loans.reduce((s,l) => s + Number(l.balance||0), 0);
+  const topGoal = d.goals[0];
+  const trialsSoon = (d.subscriptions||[])
+    .filter(s => s.cycle === 'trial')
+    .map(s => ({ ...s, _days: daysUntil(subNextDate(s)) }))
+    .filter(s => s._days <= (s.reminderDays || 2))
+    .sort((a,b) => a._days - b._days);
+
+  return `
+    <div class="ledger-tape">
+      <div class="tape-month">${monthName(now)}</div>
+      <div class="tape-label">Checking minus unpaid bills</div>
+      <div class="tape-amount ${netTape<0?'neg':''}">${fmtShort(netTape)}</div>
+      <div class="tape-row"><span>Checking ${fmt(checkingTotal)}</span><span>Unpaid bills ${fmt(unpaidSum)}</span></div>
+    </div>
+    ${renderAutopayBanner()}
+    ${trialsSoon.length ? `
+    <div class="section" style="margin-top:14px;">
+      <div class="register" style="border: 1px solid var(--rust); border-radius: 4px; padding: 0 12px;">
+        ${trialsSoon.map(s => `
+          <div class="register-row" style="border-bottom-color: var(--rust);" onclick="setTab('subscriptions')">
+            <div class="register-left"><div class="register-title" style="color:var(--rust)">&#9888; ${esc(s.name)} trial</div><div class="register-sub">${s._days < 0 ? 'Already ended' : s._days === 0 ? 'Cancel by today' : `Cancel by in ${s._days}d`}</div></div>
+            <div class="register-leader"></div><div class="register-right" style="color:var(--rust)">${fmt(s.cost)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+    <div class="stat-grid">
+      <button class="stat-card" onclick="setTab('bills')"><div>&#128196;</div><div class="stat-value">${dueSoon.length}</div><div class="stat-label">bills due soon</div></button>
+      <button class="stat-card" onclick="setTab('spending')"><div>&#128722;</div><div class="stat-value">${fmtShort(monthSpend)}</div><div class="stat-label">spent this month</div></button>
+      <button class="stat-card" onclick="setTab('accounts')"><div>&#127974;</div><div class="stat-value">${fmtShort(savingsTotal)}</div><div class="stat-label">in savings</div></button>
+      <button class="stat-card" onclick="setTab('loans')"><div>&#128179;</div><div class="stat-value">${fmtShort(loanTotal)}</div><div class="stat-label">loan balance</div></button>
+      <button class="stat-card" style="grid-column: span 2" onclick="setTab('paycheck')"><div>&#128176;</div><div class="stat-value">${fmtShort(monthIncome)}</div><div class="stat-label">received this month</div></button>
+    </div>
+    ${renderForecastCard()}
+    ${renderMonthlyCheckup()}
+    <div class="section">
+      <div class="section-head"><h4>Due soon</h4><button class="link-btn" onclick="setTab('bills')">All bills &#8250;</button></div>
+      ${dueSoon.length === 0 ? `<div class="empty-state">Nothing due in the next week.</div>` :
+        `<div class="register">${dueSoon.slice(0,4).map(b => `
+          <div class="register-row"><div class="register-left"><div class="register-title">${esc(b.name)}</div><div class="register-sub">${esc(b.category)} &middot; ${b._diff < 0 ? `${-b._diff}d overdue` : b._diff === 0 ? 'due today' : `due in ${b._diff}d`}</div></div><div class="register-leader"></div><div class="register-right" style="color:${b._diff<0?'var(--rust)':'var(--amber)'}">${fmt(b.amount)}</div></div>`).join('')}</div>`}
+    </div>
+    ${topGoal ? `
+    <div class="section">
+      <div class="section-head"><h4>Savings goal</h4><button class="link-btn" onclick="setTab('savings')">All goals &#8250;</button></div>
+      ${goalCard(topGoal)}
+    </div>` : ''}
+  `;
+}
+function goalCard(g) {
+  const pct = Math.min(100, (Number(g.current) / Math.max(1, Number(g.target))) * 100);
+  return `<div class="goal-card"><div class="goal-top"><span class="goal-name">${esc(g.name)}</span><span class="goal-nums">${fmt(g.current)} / ${fmt(g.target)}</span></div><div class="goal-bar-track"><div class="goal-bar-fill" style="width:${pct}%"></div></div></div>`;
+}
+
+/* ---------------- Bills ---------------- */
+function pendingAutopayBills(d) {
+  const now = new Date(), mk = monthKey(now);
+  return d.bills.filter(b => b.autopay).map(b => {
+    const inMonth = b.recurrence === 'monthly' || (b.recurrence === 'once' && monthKey(new Date(b.date)) === mk);
+    if (!inMonth) return null;
+    const day = b.recurrence === 'monthly' ? Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth())) : new Date(b.date).getDate();
+    return { ...b, _day: day };
+  }).filter(Boolean)
+    .filter(b => b._day <= now.getDate())
+    .filter(b => !d.billPayments.includes(`${b.id}:${mk}`))
+    .filter(b => !(d.autopayDismissed||[]).includes(`${b.id}:${mk}`));
+}
+function confirmAutopay(id) {
+  const d = state.data, mk = monthKey(new Date()), key = `${id}:${mk}`, txId = `bill:${key}`;
+  const bill = d.bills.find(b => b.id === id);
+  if (!bill || d.billPayments.includes(key)) return;
+  d.billPayments = [...d.billPayments, key];
+  const tx = { id: txId, amount: Number(bill.amount), category: bill.category, note: `Bill: ${bill.name}`, date: new Date().toISOString().slice(0,10), accountId: bill.accountId || '', source: 'bill' };
+  d.transactions = [...d.transactions, tx];
+  if (bill.accountId) adjustAccountBalance(bill.accountId, -Number(bill.amount));
+  if (bill.linkedType === 'loan') recordLoanPayment(bill.linkedId, Number(bill.amount), tx.date, txId);
+  commit();
+}
+function dismissAutopay(id) {
+  const mk = monthKey(new Date());
+  state.data.autopayDismissed = [...(state.data.autopayDismissed||[]), `${id}:${mk}`];
+  commit();
+}
+function renderAutopayBanner() {
+  const pending = pendingAutopayBills(state.data);
+  if (!pending.length) return '';
+  return `
+    <div class="section" style="margin-top:14px;">
+      <div class="section-head"><h4>Confirm autopay</h4></div>
+      <div class="register" style="border: 1px solid var(--steel); border-radius: 4px; padding: 0 12px;">
+        ${pending.map(b => `
+          <div class="register-row" style="border-bottom-color: var(--steel); flex-wrap: wrap;">
+            <div class="register-left"><div class="register-title">${esc(b.name)}</div><div class="register-sub">Due the ${ordinal(b._day)} &middot; ${fmt(b.amount)}</div></div>
+            <div style="display:flex; gap:6px; margin-left:auto;">
+              <button class="btn-danger" style="padding:6px 10px; font-size:12px;" onclick="dismissAutopay('${b.id}')">Not yet</button>
+              <button class="btn-primary" style="flex:none; padding:6px 10px; font-size:12px; margin:0;" onclick="confirmAutopay('${b.id}')">Confirm paid</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+function renderBills() {
+  const d = state.data, viewMonth = state.billsMonth, mk = monthKey(viewMonth), isCurrentMonth = mk === monthKey(new Date());
+  const isPaid = b => d.billPayments.includes(`${b.id}:${mk}`);
+  const list = d.bills
+    .filter(b => b.recurrence === 'monthly' || (b.recurrence === 'once' && monthKey(new Date(b.date)) === mk))
+    .map(b => { const day = b.recurrence === 'monthly' ? Math.min(b.dueDay, daysInMonth(viewMonth.getFullYear(), viewMonth.getMonth())) : new Date(b.date).getDate(); return {...b, _day: day, _paid: isPaid(b)}; })
+    .sort((a,b) => a._day - b._day);
+  const totalUnpaid = list.filter(b => !b._paid).reduce((s,b) => s + Number(b.amount||0), 0);
+
+  return `
+    <div class="tab-header"><div><h2>Bills</h2><p class="tab-sub">${fmt(totalUnpaid)} unpaid</p></div>
+      <div style="display:flex; align-items:center; gap:8px;">${monthNav(viewMonth, 'shiftBillsMonth')}<button class="fab-inline" onclick="openBillSheet()">+</button></div></div>
+    ${!isCurrentMonth ? `<p class="fine-print" style="margin-top:0">Viewing a different month than today — checkboxes here still update balances and history for that month.</p>` : ''}
+    ${renderAutopayBanner()}
+    ${list.length === 0 ? `<div class="empty-state" style="margin:0 16px">No bills for ${monthName(viewMonth)}.</div>` :
+      `<div class="register">${list.map(b => `
+        <div class="register-row clickable" onclick="openBillSheet('${b.id}')">
+          <button class="check-toggle" onclick="event.stopPropagation(); toggleBillPaid('${b.id}')">${b._paid ? '&#9989;' : '&#9675;'}</button>
+          <div class="register-left"><div class="register-title ${b._paid?'done':''}">${esc(b.name)}${b.autopay ? ' <span class="mono" style="font-size:9px; color:var(--steel);">AUTOPAY</span>' : ''}${b.linkedType ? ` <span class="mono" style="font-size:9px; color:var(--amber);">${b.linkedType==='loan'?'LOAN':'SUB'}</span>` : ''}</div><div class="register-sub">Due the ${ordinal(b._day)} &middot; ${esc(b.category)}</div></div>
+          <div class="register-leader"></div>
+          <div class="register-right" style="color:${b._paid?'var(--muted)':'var(--ink)'}">${fmt(b.amount)}</div>
+        </div>`).join('')}</div>`}
+  `;
+}
+function toggleBillPaid(id) {
+  const d = state.data, mk = monthKey(state.billsMonth), key = `${id}:${mk}`, txId = `bill:${key}`;
+  const bill = d.bills.find(b => b.id === id);
+  const wasPaid = d.billPayments.includes(key);
+  if (wasPaid) {
+    d.billPayments = d.billPayments.filter(k => k !== key);
+    const tx = d.transactions.find(t => t.id === txId);
+    if (tx) {
+      if (tx.accountId) adjustAccountBalance(tx.accountId, Number(tx.amount));
+      d.transactions = d.transactions.filter(t => t.id !== txId);
+    }
+    if (bill && bill.linkedType === 'loan') reverseLoanPayment(txId);
+  } else {
+    d.billPayments = [...d.billPayments, key];
+    const payDate = monthKey(new Date()) === mk ? new Date().toISOString().slice(0,10) : `${mk}-01`;
+    const tx = { id: txId, amount: Number(bill.amount), category: bill.category, note: `Bill: ${bill.name}`, date: payDate, accountId: bill.accountId || '', source: 'bill' };
+    d.transactions = [...d.transactions, tx];
+    if (bill.accountId) adjustAccountBalance(bill.accountId, -Number(bill.amount));
+    if (bill.linkedType === 'loan') recordLoanPayment(bill.linkedId, Number(bill.amount), payDate, txId);
+  }
+  commit();
+}
+function openBillSheet(id) {
+  const b = id ? state.data.bills.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    ${b?.linkedType ? `<p class="fine-print" style="padding:0; margin-top:0;">Linked to a ${b.linkedType === 'loan' ? 'loan' : 'subscription'} — the category and recurrence stay in sync from there. You can still edit the amount here (e.g. to pay extra), and edits to other fields won't be overwritten until the source is saved again.</p>` : ''}
+    <div class="field"><span class="field-label">Name</span><input class="input" id="f-name" value="${esc(b?.name||'')}" placeholder="Rent, electric, Netflix..."></div>
+    <div class="field"><span class="field-label">Amount</span><input class="input mono" type="number" id="f-amount" value="${b?.amount??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Category</span><select class="input" id="f-category">${catOptions(b?.category)}</select></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Pay from account</span><select class="input" id="f-account"><option value="">Not tracked</option>${accounts.map(a => `<option value="${a.id}" ${b?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}
+    <div class="field"><span class="field-label">Autopay</span>
+      <div class="segmented" id="f-autopay-seg">
+        <button type="button" class="${!b?.autopay?'seg-active':''}" onclick="setAutopay(false)">No</button>
+        <button type="button" class="${b?.autopay?'seg-active':''}" onclick="setAutopay(true)">Yes</button>
+      </div>
+    </div>
+    <div class="field"><span class="field-label">Repeats</span>
+      <div class="segmented" id="f-recurrence-seg">
+        <button type="button" class="${(b?.recurrence||'monthly')==='monthly'?'seg-active':''}" onclick="setRecurrence('monthly')">Monthly</button>
+        <button type="button" class="${b?.recurrence==='once'?'seg-active':''}" onclick="setRecurrence('once')">One-time</button>
+      </div>
+    </div>
+    <div id="f-recurrence-fields"></div>`;
+  openSheet(sheetShell(b ? 'Edit bill' : 'Add bill', body, b ? `deleteBill('${b.id}')` : null));
+  window._billRecurrence = b?.recurrence || 'monthly';
+  window._billDueDay = b?.dueDay || 1;
+  window._billDate = b?.date || new Date().toISOString().slice(0,10);
+  window._billAutopay = !!b?.autopay;
+  renderRecurrenceFields();
+  submitSheet = () => saveBill(id);
+}
+function setAutopay(v) {
+  window._billAutopay = v;
+  document.querySelectorAll('#f-autopay-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===1)===v));
+}
+function setRecurrence(r) {
+  window._billRecurrence = r;
+  document.querySelectorAll('#f-recurrence-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===0)===(r==='monthly')));
+  renderRecurrenceFields();
+}
+function renderRecurrenceFields() {
+  const el = document.getElementById('f-recurrence-fields');
+  if (window._billRecurrence === 'monthly') {
+    el.innerHTML = `<div class="field"><span class="field-label">Due day of month</span><input class="input mono" type="number" min="1" max="31" id="f-dueday" value="${window._billDueDay}"></div>`;
+  } else {
+    el.innerHTML = `<div class="field"><span class="field-label">Due date</span><input class="input mono" type="date" id="f-date" value="${window._billDate}"></div>`;
+  }
+}
+function saveBill(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const amount = document.getElementById('f-amount').value;
+  if (!name || !amount) return;
+  const accEl = document.getElementById('f-account');
+  const existing = state.data.bills.find(x => x.id === id);
+  const bill = {
+    id: id || uid(), name, amount: Number(amount),
+    category: document.getElementById('f-category').value,
+    accountId: accEl ? accEl.value : (existing?.accountId || ''),
+    autopay: !!window._billAutopay,
+    recurrence: window._billRecurrence,
+    dueDay: window._billRecurrence === 'monthly' ? Number(document.getElementById('f-dueday').value || 1) : (existing?.dueDay || 1),
+    date: window._billRecurrence === 'once' ? document.getElementById('f-date').value : (existing?.date || new Date().toISOString().slice(0,10)),
+    linkedType: existing?.linkedType || null,
+    linkedId: existing?.linkedId || '',
+  };
+  const exists = state.data.bills.some(b => b.id === bill.id);
+  state.data.bills = exists ? state.data.bills.map(b => b.id===bill.id?bill:b) : [...state.data.bills, bill];
+  closeSheet(); commit();
+}
+function deleteBill(id) {
+  const bill = state.data.bills.find(b => b.id === id);
+  const relatedKeys = state.data.billPayments.filter(k => k.startsWith(id + ':'));
+  relatedKeys.forEach(k => {
+    const txId = `bill:${k}`;
+    const tx = state.data.transactions.find(t => t.id === txId);
+    if (tx) {
+      if (tx.accountId) adjustAccountBalance(tx.accountId, Number(tx.amount));
+      state.data.transactions = state.data.transactions.filter(t => t.id !== txId);
+    }
+    if (bill && bill.linkedType === 'loan') reverseLoanPayment(txId);
+  });
+  if (bill && bill.linkedType === 'loan') {
+    const loan = state.data.loans.find(l => l.id === bill.linkedId);
+    if (loan && loan.linkedBillId === id) loan.linkedBillId = '';
+  }
+  if (bill && bill.linkedType === 'subscription') {
+    const sub = state.data.subscriptions.find(s => s.id === bill.linkedId);
+    if (sub && sub.linkedBillId === id) sub.linkedBillId = '';
+  }
+  state.data.bills = state.data.bills.filter(b => b.id !== id);
+  state.data.billPayments = state.data.billPayments.filter(k => !k.startsWith(id + ':'));
+  closeSheet(); commit();
+}
+
+/* ---------------- Subscriptions ---------------- */
+function subNextDate(sub) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  if (sub.cycle === 'trial') return new Date(sub.endDate + 'T00:00:00');
+  if (sub.cycle === 'monthly') {
+    let d = new Date(now.getFullYear(), now.getMonth(), Math.min(sub.renewDay, daysInMonth(now.getFullYear(), now.getMonth())));
+    if (d < now) d = new Date(now.getFullYear(), now.getMonth()+1, Math.min(sub.renewDay, daysInMonth(now.getFullYear(), now.getMonth()+1)));
+    return d;
+  }
+  // yearly
+  let d = new Date(now.getFullYear(), sub.renewMonth - 1, Math.min(sub.renewDay, daysInMonth(now.getFullYear(), sub.renewMonth - 1)));
+  if (d < now) d = new Date(now.getFullYear()+1, sub.renewMonth - 1, Math.min(sub.renewDay, daysInMonth(now.getFullYear()+1, sub.renewMonth - 1)));
+  return d;
+}
+function daysUntil(date) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((date - now) / 86400000);
+}
+function renderSubscriptions() {
+  const d = state.data;
+  const subs = (d.subscriptions||[]).map(s => ({ ...s, _next: subNextDate(s), _days: daysUntil(subNextDate(s)) })).sort((a,b) => a._days - b._days);
+  const monthlyTotal = subs.reduce((s,x) => s + (x.cycle === 'yearly' ? Number(x.cost||0)/12 : x.cycle === 'monthly' ? Number(x.cost||0) : 0), 0);
+  return `
+    <div class="tab-header"><div><h2>Subscriptions</h2><p class="tab-sub">${fmt(monthlyTotal)}/mo in active subscriptions</p></div>
+      <button class="fab-inline" onclick="openSubSheet()">+</button></div>
+    <p class="fine-print" style="margin-top:0">This app can't send background notifications on its own — but each subscription below has an "Add calendar reminder" option that creates a real alert through your phone's Calendar app.</p>
+    ${subs.length === 0 ? `<div class="empty-state" style="margin:0 16px">No subscriptions or trials tracked yet.</div>` :
+      `<div style="padding:0">${subs.map(s => {
+        const urgent = s._days <= (s.reminderDays || 2);
+        const label = s.cycle === 'trial' ? (s._days < 0 ? 'Trial ended' : s._days === 0 ? 'Cancel by today' : `Cancel by in ${s._days}d`) : (s._days === 0 ? 'Renews today' : `Renews in ${s._days}d`);
+        return `<div class="loan-card" onclick="openSubSheet('${s.id}')">
+          <div class="loan-top"><span class="loan-name">${esc(s.name)}${s.cycle==='trial' ? ' <span class="mono" style="font-size:10px; color:var(--amber);">TRIAL</span>' : ''}${s.trackInBills ? ' <span class="mono" style="font-size:9px; color:var(--steel);">IN BILLS</span>' : ''}</span><span class="loan-balance mono">${fmt(s.cost)}</span></div>
+          <div class="loan-meta"><span style="color:${urgent ? 'var(--rust)' : 'var(--muted)'}; font-weight:${urgent?'600':'400'}">${label}</span><span>${s.cycle==='yearly'?'yearly':s.cycle==='monthly'?'monthly':new Date(s._next).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>
+        </div>`;
+      }).join('')}</div>`}
+  `;
+}
+function openSubSheet(id) {
+  const s = id ? state.data.subscriptions.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">Name</span><input class="input" id="f-name" value="${esc(s?.name||'')}" placeholder="Streaming service, software, gym..."></div>
+    <div class="field"><span class="field-label">Cost</span><input class="input mono" type="number" id="f-cost" value="${s?.cost??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Type</span>
+      <div class="segmented" id="f-cycle-seg">
+        <button type="button" class="${(s?.cycle||'trial')==='trial'?'seg-active':''}" onclick="setSubCycle('trial')">Free trial</button>
+        <button type="button" class="${s?.cycle==='monthly'?'seg-active':''}" onclick="setSubCycle('monthly')">Monthly</button>
+        <button type="button" class="${s?.cycle==='yearly'?'seg-active':''}" onclick="setSubCycle('yearly')">Yearly</button>
+      </div>
+    </div>
+    <div id="f-cycle-fields"></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Pay from account</span><select class="input" id="f-account"><option value="">Not tracked</option>${accounts.map(a => `<option value="${a.id}" ${s?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}
+    <div id="f-tracklink-wrap"></div>
+    <div class="field"><span class="field-label">Remind me this many days before</span><input class="input mono" type="number" min="0" max="30" id="f-reminder" value="${s?.reminderDays ?? 2}"></div>
+    ${s ? `<button class="btn-primary" type="button" style="width:100%; justify-content:center; margin-bottom:14px; background: var(--steel)" onclick="downloadSubICS('${s.id}')">&#128197; Add calendar reminder</button>` : ''}`;
+  openSheet(sheetShell(s ? 'Edit subscription' : 'Add subscription or trial', body, s ? `deleteSub('${s.id}')` : null));
+  window._subCycle = s?.cycle || 'trial';
+  window._subEndDate = s?.endDate || new Date().toISOString().slice(0,10);
+  window._subRenewDay = s?.renewDay || 1;
+  window._subRenewMonth = s?.renewMonth || 1;
+  window._subTrackLink = !!s?.trackInBills;
+  renderSubCycleFields();
+  submitSheet = () => saveSub(id);
+}
+function setSubCycle(c) {
+  window._subCycle = c;
+  document.querySelectorAll('#f-cycle-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', ['trial','monthly','yearly'][i] === c));
+  renderSubCycleFields();
+}
+function setSubTrackLink(v) {
+  window._subTrackLink = v;
+  document.querySelectorAll('#f-subtracklink-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===1)===v));
+}
+function renderSubCycleFields() {
+  const el = document.getElementById('f-cycle-fields');
+  const linkWrap = document.getElementById('f-tracklink-wrap');
+  if (window._subCycle === 'trial') {
+    el.innerHTML = `<div class="field"><span class="field-label">Trial ends</span><input class="input mono" type="date" id="f-enddate" value="${window._subEndDate}"></div>`;
+  } else if (window._subCycle === 'monthly') {
+    el.innerHTML = `<div class="field"><span class="field-label">Renews on day of month</span><input class="input mono" type="number" min="1" max="31" id="f-renewday" value="${window._subRenewDay}"></div>`;
+  } else {
+    el.innerHTML = `
+      <div class="field"><span class="field-label">Renewal month</span><select class="input" id="f-renewmonth">${Array.from({length:12},(_,i)=>i+1).map(m => `<option value="${m}" ${window._subRenewMonth===m?'selected':''}>${new Date(2000,m-1,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('')}</select></div>
+      <div class="field"><span class="field-label">Renewal day</span><input class="input mono" type="number" min="1" max="31" id="f-renewday" value="${window._subRenewDay}"></div>`;
+  }
+  if (linkWrap) {
+    if (window._subCycle === 'monthly') {
+      linkWrap.innerHTML = `<div class="field"><span class="field-label">Track in Bills</span>
+        <div class="segmented" id="f-subtracklink-seg">
+          <button type="button" class="${!window._subTrackLink?'seg-active':''}" onclick="setSubTrackLink(false)">No</button>
+          <button type="button" class="${window._subTrackLink?'seg-active':''}" onclick="setSubTrackLink(true)">Yes</button>
+        </div>
+        <p class="fine-print" style="padding:0; margin-top:6px;">Creates a recurring Bill so this charge shows up in Spending too — no need to log it twice.</p>
+      </div>`;
+    } else {
+      linkWrap.innerHTML = window._subCycle === 'trial'
+        ? `<p class="fine-print" style="padding:0;">Trials don't create a Bill yet — switch this to Monthly once it converts if you want it tracked in Bills.</p>`
+        : `<p class="fine-print" style="padding:0;">Yearly subscriptions aren't linked to Bills yet — this one will stay tracked here only.</p>`;
+    }
+  }
+}
+function saveSub(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const cost = document.getElementById('f-cost').value;
+  if (!name || !cost) return;
+  const accEl = document.getElementById('f-account');
+  const existing = id ? state.data.subscriptions.find(x => x.id === id) : null;
+  const sub = {
+    id: id || uid(), name, cost: Number(cost), cycle: window._subCycle,
+    reminderDays: Number(document.getElementById('f-reminder').value || 2),
+    endDate: window._subCycle === 'trial' ? document.getElementById('f-enddate').value : '',
+    renewDay: window._subCycle !== 'trial' ? Number(document.getElementById('f-renewday').value || 1) : 1,
+    renewMonth: window._subCycle === 'yearly' ? Number(document.getElementById('f-renewmonth').value || 1) : 1,
+    accountId: accEl ? accEl.value : (existing?.accountId || ''),
+    trackInBills: window._subCycle === 'monthly' ? !!window._subTrackLink : false,
+    linkedBillId: existing?.linkedBillId || '',
+  };
+  if (sub.trackInBills) {
+    if (sub.linkedBillId && state.data.bills.some(b => b.id === sub.linkedBillId)) {
+      state.data.bills = state.data.bills.map(b => b.id === sub.linkedBillId
+        ? { ...b, name: sub.name, amount: sub.cost, dueDay: sub.renewDay, accountId: sub.accountId, category: 'Subscriptions', recurrence: 'monthly' }
+        : b);
+    } else {
+      const bill = { id: uid(), name: sub.name, amount: sub.cost, category: 'Subscriptions', accountId: sub.accountId, autopay: false, recurrence: 'monthly', dueDay: sub.renewDay, date: new Date().toISOString().slice(0,10), linkedType: 'subscription', linkedId: sub.id };
+      state.data.bills = [...state.data.bills, bill];
+      sub.linkedBillId = bill.id;
+    }
+  } else if (sub.linkedBillId) {
+    state.data.bills = state.data.bills.map(b => b.id === sub.linkedBillId ? { ...b, linkedType: null, linkedId: '' } : b);
+    sub.linkedBillId = '';
+  }
+  const exists = state.data.subscriptions.some(x => x.id === sub.id);
+  state.data.subscriptions = exists ? state.data.subscriptions.map(x => x.id===sub.id?sub:x) : [...state.data.subscriptions, sub];
+  closeSheet(); commit();
+}
+function deleteSub(id) {
+  const sub = state.data.subscriptions.find(s => s.id === id);
+  if (sub && sub.linkedBillId) {
+    state.data.bills = state.data.bills.map(b => b.id === sub.linkedBillId ? { ...b, linkedType: null, linkedId: '' } : b);
+  }
+  state.data.subscriptions = state.data.subscriptions.filter(s => s.id !== id);
+  closeSheet(); commit();
+}
+function icsDateStr(date) {
+  return `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+}
+function downloadSubICS(id) {
+  const s = state.data.subscriptions.find(x => x.id === id);
+  if (!s) return;
+  const eventDate = subNextDate(s);
+  const dt = icsDateStr(eventDate);
+  const stamp = icsDateStr(new Date()) + 'T000000Z';
+  const summary = (s.cycle === 'trial' ? 'Trial ends: ' : 'Renews: ') + s.name;
+  const desc = s.cycle === 'trial' ? 'Cancel before this date if you do not want to be charged.' : 'Subscription renewal reminder.';
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ledger//Subscriptions//EN','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${s.id}-${dt}@ledger`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${dt}`,
+    `DTEND;VALUE=DATE:${dt}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${desc}`,
+    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Reminder',`TRIGGER:-P${s.reminderDays||2}D`,'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${s.name.replace(/[^a-z0-9]/gi,'_')}-reminder.ics`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function applySpendingFilterSort(list) {
+  const f = state.spendingFilter;
+  let out = list;
+  if (f.category !== 'all') out = out.filter(t => t.category === f.category);
+  if (f.account !== 'all') out = out.filter(t => t.accountId === f.account);
+  const sorters = {
+    'date-desc': (a,b) => new Date(b.date) - new Date(a.date),
+    'date-asc': (a,b) => new Date(a.date) - new Date(b.date),
+    'amount-desc': (a,b) => Number(b.amount) - Number(a.amount),
+    'amount-asc': (a,b) => Number(a.amount) - Number(b.amount),
+  };
+  return [...out].sort(sorters[f.sort] || sorters['date-desc']);
+}
+function updateSpendingFilter(field, value) { state.spendingFilter[field] = value; renderAll(); }
+/* ---------------- Spending ---------------- */
+function renderSpending() {
+  const d = state.data, viewMonth = state.spendingMonth, mk = monthKey(viewMonth);
+  const monthTx = d.transactions.filter(t => monthKey(new Date(t.date)) === mk).sort((a,b) => new Date(b.date) - new Date(a.date));
+  const total = monthTx.reduce((s,t) => s + Number(t.amount||0), 0);
+  const byCat = {}; monthTx.forEach(t => byCat[t.category] = (byCat[t.category]||0) + Number(t.amount||0));
+  Object.keys(d.budgets||{}).forEach(k => { if (!(k in byCat)) byCat[k] = 0; });
+  const catList = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+  const filtered = applySpendingFilterSort(monthTx);
+  const f = state.spendingFilter;
+
+  return `
+    <div class="tab-header"><div><h2>Spending</h2><p class="tab-sub">${fmt(total)} total</p></div>
+      <div style="display:flex; align-items:center; gap:8px;">${monthNav(viewMonth, 'shiftSpendingMonth')}<button class="fab-inline" onclick="openTxSheet()">+</button></div></div>
+    <div class="section-head" style="padding:0 16px; margin-top:2px;"><span></span><button class="link-btn" onclick="openBudgetsSheet()">Set budgets &#8250;</button></div>
+    ${catList.length ? `<div class="cat-bars">${catList.map(([cat,amt]) => {
+      const budget = (d.budgets||{})[cat];
+      const overBudget = budget && amt > budget;
+      const pct = budget ? Math.min(100, (amt/budget)*100) : (total > 0 ? (amt/total)*100 : 0);
+      return `<div class="cat-bar-row"><span class="cat-dot" style="background:${catColor(cat)}"></span><span class="cat-bar-label">${esc(cat)}</span>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${overBudget?'var(--rust)':catColor(cat)}"></div></div>
+      <span class="cat-bar-amt">${fmtShort(amt)}${budget ? ' / ' + fmtShort(budget) : ''}</span></div>`;
+    }).join('')}</div>` : ''}
+    <div style="display:flex; gap:6px; padding:0 16px; margin-top:14px;">
+      <select class="input" style="font-size:11px; padding:6px 6px;" onchange="updateSpendingFilter('category', this.value)">
+        <option value="all" ${f.category==='all'?'selected':''}>All categories</option>
+        ${CATS.map(c => `<option value="${c.key}" ${f.category===c.key?'selected':''}>${c.key}</option>`).join('')}
+      </select>
+      ${d.accounts.length ? `<select class="input" style="font-size:11px; padding:6px 6px;" onchange="updateSpendingFilter('account', this.value)">
+        <option value="all" ${f.account==='all'?'selected':''}>All accounts</option>
+        ${d.accounts.map(a => `<option value="${a.id}" ${f.account===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
+      </select>` : ''}
+      <select class="input" style="font-size:11px; padding:6px 6px;" onchange="updateSpendingFilter('sort', this.value)">
+        <option value="date-desc" ${f.sort==='date-desc'?'selected':''}>Newest</option>
+        <option value="date-asc" ${f.sort==='date-asc'?'selected':''}>Oldest</option>
+        <option value="amount-desc" ${f.sort==='amount-desc'?'selected':''}>Highest $</option>
+        <option value="amount-asc" ${f.sort==='amount-asc'?'selected':''}>Lowest $</option>
+      </select>
+    </div>
+    ${filtered.length === 0 ? `<div class="empty-state" style="margin:16px">No spending matches this filter for ${monthName(viewMonth)}.</div>` :
+      `<div class="register" style="margin-top:10px">${filtered.map(t => {
+        const isBill = t.source === 'bill';
+        return `<div class="register-row ${isBill ? '' : 'clickable'}" ${isBill ? '' : `onclick="openTxSheet('${t.id}')"`}>
+          <div class="register-left"><div class="register-title">${esc(t.note || t.category)}</div><div class="register-sub">${new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})} &middot; ${esc(t.category)}${isBill ? ' &middot; via Bills' : ''}</div></div>
+          <div class="register-leader"></div><div class="register-right">${fmt(t.amount)}</div>
+        </div>`;
+      }).join('')}</div>`}
+  `;
+}
+function openBudgetsSheet() {
+  const b = state.data.budgets || {};
+  const body = `
+    <p class="fine-print" style="padding:0; margin-top:0;">Leave a category blank for no limit.</p>
+    ${CATS.map(c => `<div class="field"><span class="field-label">${esc(c.key)}</span><input class="input mono" type="number" id="budget-${c.key}" value="${b[c.key] ?? ''}" placeholder="No limit"></div>`).join('')}
+  `;
+  openSheet(sheetShell('Monthly budgets', body, null));
+  submitSheet = saveBudgets;
+}
+function saveBudgets() {
+  const budgets = {};
+  CATS.forEach(c => {
+    const v = document.getElementById(`budget-${c.key}`).value;
+    if (v) budgets[c.key] = Number(v);
+  });
+  state.data.budgets = budgets;
+  closeSheet(); commit();
+}
+function getVendorHistory() {
+  const map = {};
+  [...state.data.transactions]
+    .filter(t => t.source !== 'bill' && t.note && t.note.trim())
+    .sort((a,b) => new Date(b.date) - new Date(a.date))
+    .forEach(t => {
+      const name = t.note.trim();
+      if (!map[name]) map[name] = { category: t.category };
+    });
+  return map;
+}
+function onVendorInput(val) {
+  const history = getVendorHistory();
+  const match = history[val.trim()];
+  if (match) {
+    const catEl = document.getElementById('f-category');
+    if (catEl) { catEl.value = match.category; updateNotePlaceholder(match.category); }
+  }
+}
+function openTxSheet(id) {
+  const t = id ? state.data.transactions.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const notePlaceholder = (t?.category || 'Groceries') === 'Other' ? 'e.g. gift, donation, tip, misc...' : 'What was it for?';
+  const vendors = Object.keys(getVendorHistory());
+  const body = `
+    <div class="field"><span class="field-label">Amount</span><input class="input mono" type="number" id="f-amount" value="${t?.amount??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Vendor / note (optional)</span><input class="input" id="f-note" list="vendor-datalist" value="${esc(t?.note||'')}" placeholder="${notePlaceholder}" oninput="onVendorInput(this.value)"></div>
+    <datalist id="vendor-datalist">${vendors.map(v => `<option value="${esc(v)}">`).join('')}</datalist>
+    <div class="field"><span class="field-label">Category</span><select class="input" id="f-category" onchange="updateNotePlaceholder(this.value)">${catOptions(t?.category)}</select></div>
+    <div class="field"><span class="field-label">Date</span><input class="input mono" type="date" id="f-date" value="${t?.date || (monthKey(state.spendingMonth) === monthKey(new Date()) ? new Date().toISOString().slice(0,10) : `${monthKey(state.spendingMonth)}-01`)}"></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Account</span><select class="input" id="f-account">${accounts.map(a => `<option value="${a.id}" ${t?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}`;
+  openSheet(sheetShell(t ? 'Edit transaction' : 'Log spending', body, t ? `deleteTx('${t.id}')` : null));
+  submitSheet = () => saveTx(id);
+}
+function updateNotePlaceholder(cat) {
+  const el = document.getElementById('f-note');
+  if (el) el.placeholder = cat === 'Other' ? 'e.g. gift, donation, tip, misc...' : 'What was it for?';
+}
+function saveTx(id) {
+  const amount = document.getElementById('f-amount').value;
+  if (!amount) return;
+  const accEl = document.getElementById('f-account');
+  const newAccountId = accEl ? accEl.value : '';
+  const newAmount = Number(amount);
+  const existing = id ? state.data.transactions.find(x => x.id === id) : null;
+  if (existing && existing.accountId) adjustAccountBalance(existing.accountId, Number(existing.amount)); // revert old effect
+  if (newAccountId) adjustAccountBalance(newAccountId, -newAmount); // apply new effect
+  const tx = { id: id || uid(), amount: newAmount, category: document.getElementById('f-category').value,
+    note: document.getElementById('f-note').value, date: document.getElementById('f-date').value,
+    accountId: newAccountId };
+  const exists = state.data.transactions.some(x => x.id === tx.id);
+  state.data.transactions = exists ? state.data.transactions.map(x => x.id===tx.id?tx:x) : [...state.data.transactions, tx];
+  closeSheet(); commit();
+}
+function deleteTx(id) {
+  const tx = state.data.transactions.find(t => t.id === id);
+  if (tx && tx.accountId) adjustAccountBalance(tx.accountId, Number(tx.amount));
+  state.data.transactions = state.data.transactions.filter(t => t.id !== id);
+  closeSheet(); commit();
+}
+
+/* ---------------- Accounts ---------------- */
+function renderAccounts() {
+  const d = state.data;
+  const checking = d.accounts.filter(a => a.type === 'checking');
+  const savings = d.accounts.filter(a => a.type === 'savings');
+  const total = d.accounts.reduce((s,a) => s + Number(a.balance||0), 0);
+  const accName = id => d.accounts.find(a => a.id === id)?.name || 'Deleted account';
+  const recentTransfers = [...d.transfers].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+  const recentAdjustments = [...(d.adjustments||[])].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+  const rows = (list) => list.length === 0 ? `<div class="empty-state">No accounts added.</div>` :
+    `<div class="register">${list.map(a => `
+      <div class="register-row clickable" onclick="openAccountSheet('${a.id}')">
+        <div class="register-left"><div class="register-title">${esc(a.name)}</div><div class="register-sub">${esc(a.institution||'')}</div></div>
+        <div class="register-leader"></div><div class="register-right">${fmt(a.balance)}</div>
+      </div>`).join('')}</div>`;
+  return `
+    <div class="tab-header"><div><h2>Accounts</h2><p class="tab-sub">${fmt(total)} combined</p></div>
+      <div style="display:flex; gap:8px;">
+        ${d.accounts.length ? `<button class="fab-inline" style="background:var(--amber)" onclick="openAdjustSheet()">&#177;</button>` : ''}
+        ${d.accounts.length >= 2 ? `<button class="fab-inline" style="background:var(--steel)" onclick="openTransferSheet()">&#8646;</button>` : ''}
+        <button class="fab-inline" onclick="openAccountSheet()">+</button>
+      </div></div>
+    <div class="section"><div class="section-head"><h4>Checking</h4></div>${rows(checking)}</div>
+    <div class="section"><div class="section-head"><h4>Savings</h4></div>${rows(savings)}</div>
+    ${recentAdjustments.length ? `
+    <div class="section">
+      <div class="section-head"><h4>Recent deposits &amp; withdrawals</h4></div>
+      <div class="register">${recentAdjustments.map(a => `
+        <div class="register-row clickable" onclick="openAdjustSheet('${a.id}')">
+          <div class="register-left"><div class="register-title">${a.type==='deposit'?'Deposit':'Withdrawal'} &middot; ${esc(accName(a.accountId))}</div><div class="register-sub">${new Date(a.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${a.note ? ' &middot; ' + esc(a.note) : ''}</div></div>
+          <div class="register-leader"></div><div class="register-right" style="color:${a.type==='deposit'?'var(--green)':'var(--ink)'}">${a.type==='deposit'?'+':'-'}${fmt(a.amount)}</div>
+        </div>`).join('')}</div>
+    </div>` : ''}
+    ${recentTransfers.length ? `
+    <div class="section">
+      <div class="section-head"><h4>Recent transfers</h4></div>
+      <div class="register">${recentTransfers.map(tr => `
+        <div class="register-row clickable" onclick="openTransferSheet('${tr.id}')">
+          <div class="register-left"><div class="register-title">${esc(accName(tr.fromId))} &#8594; ${esc(accName(tr.toId))}</div><div class="register-sub">${new Date(tr.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${tr.note ? ' &middot; ' + esc(tr.note) : ''}</div></div>
+          <div class="register-leader"></div><div class="register-right">${fmt(tr.amount)}</div>
+        </div>`).join('')}</div>
+    </div>` : ''}
+  `;
+}
+function openAdjustSheet(id) {
+  const a = id ? state.data.adjustments.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">Type</span>
+      <div class="segmented" id="f-adjtype-seg">
+        <button type="button" class="${(a?.type||'deposit')==='deposit'?'seg-active':''}" onclick="setAdjType('deposit')">Deposit</button>
+        <button type="button" class="${a?.type==='withdrawal'?'seg-active':''}" onclick="setAdjType('withdrawal')">Withdrawal</button>
+      </div>
+    </div>
+    <div class="field"><span class="field-label">Account</span><select class="input" id="f-account">${accounts.map(acc => `<option value="${acc.id}" ${a?.accountId===acc.id?'selected':''}>${esc(acc.name)} (${fmt(acc.balance)})</option>`).join('')}</select></div>
+    <div class="field"><span class="field-label">Amount</span><input class="input mono" type="number" id="f-amount" value="${a?.amount??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Date</span><input class="input mono" type="date" id="f-date" value="${a?.date || new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><span class="field-label">Note (optional)</span><input class="input" id="f-note" value="${esc(a?.note||'')}" placeholder="Cash deposit, gift, ATM withdrawal..."></div>`;
+  openSheet(sheetShell(a ? 'Edit deposit/withdrawal' : 'Deposit or withdraw cash', body, a ? `deleteAdjustment('${a.id}')` : null));
+  window._adjType = a?.type || 'deposit';
+  submitSheet = () => saveAdjustment(id);
+}
+function setAdjType(t) {
+  window._adjType = t;
+  document.querySelectorAll('#f-adjtype-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===0)===(t==='deposit')));
+}
+function saveAdjustment(id) {
+  const accountId = document.getElementById('f-account').value;
+  const amount = Number(document.getElementById('f-amount').value);
+  if (!accountId || !amount) return;
+  const existing = id ? state.data.adjustments.find(x => x.id === id) : null;
+  if (existing) adjustAccountBalance(existing.accountId, existing.type === 'deposit' ? -Number(existing.amount) : Number(existing.amount));
+  adjustAccountBalance(accountId, window._adjType === 'deposit' ? amount : -amount);
+  const adj = { id: id || uid(), accountId, amount, type: window._adjType, date: document.getElementById('f-date').value, note: document.getElementById('f-note').value };
+  const exists = state.data.adjustments.some(x => x.id === adj.id);
+  state.data.adjustments = exists ? state.data.adjustments.map(x => x.id===adj.id?adj:x) : [...state.data.adjustments, adj];
+  closeSheet(); commit();
+}
+function deleteAdjustment(id) {
+  const a = state.data.adjustments.find(x => x.id === id);
+  if (a) adjustAccountBalance(a.accountId, a.type === 'deposit' ? -Number(a.amount) : Number(a.amount));
+  state.data.adjustments = state.data.adjustments.filter(x => x.id !== id);
+  closeSheet(); commit();
+}
+function openTransferSheet(id) {
+  const tr = id ? state.data.transfers.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">From</span><select class="input" id="f-from">${accounts.map(a => `<option value="${a.id}" ${tr?.fromId===a.id?'selected':''}>${esc(a.name)} (${fmt(a.balance)})</option>`).join('')}</select></div>
+    <div class="field"><span class="field-label">To</span><select class="input" id="f-to">${accounts.map(a => `<option value="${a.id}" ${tr?.toId===a.id?'selected':''}>${esc(a.name)} (${fmt(a.balance)})</option>`).join('')}</select></div>
+    <div class="field"><span class="field-label">Amount</span><input class="input mono" type="number" id="f-amount" value="${tr?.amount??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Date</span><input class="input mono" type="date" id="f-date" value="${tr?.date || new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><span class="field-label">Note (optional)</span><input class="input" id="f-note" value="${esc(tr?.note||'')}" placeholder="What's this for?"></div>
+    <div id="transfer-error" class="fine-print" style="color:var(--rust); padding:0;"></div>`;
+  openSheet(sheetShell(tr ? 'Edit transfer' : 'Transfer between accounts', body, tr ? `deleteTransfer('${tr.id}')` : null));
+  submitSheet = () => saveTransfer(id);
+}
+function saveTransfer(id) {
+  const fromId = document.getElementById('f-from').value;
+  const toId = document.getElementById('f-to').value;
+  const amount = Number(document.getElementById('f-amount').value);
+  const errEl = document.getElementById('transfer-error');
+  if (!fromId || !toId || fromId === toId || !amount) {
+    if (errEl) errEl.textContent = fromId === toId ? 'From and To must be different accounts.' : 'Enter an amount and two different accounts.';
+    return;
+  }
+  const existing = id ? state.data.transfers.find(x => x.id === id) : null;
+  if (existing) { adjustAccountBalance(existing.fromId, Number(existing.amount)); adjustAccountBalance(existing.toId, -Number(existing.amount)); }
+  adjustAccountBalance(fromId, -amount);
+  adjustAccountBalance(toId, amount);
+  const transfer = { id: id || uid(), fromId, toId, amount, date: document.getElementById('f-date').value, note: document.getElementById('f-note').value };
+  const exists = state.data.transfers.some(x => x.id === transfer.id);
+  state.data.transfers = exists ? state.data.transfers.map(x => x.id===transfer.id?transfer:x) : [...state.data.transfers, transfer];
+  closeSheet(); commit();
+}
+function deleteTransfer(id) {
+  const tr = state.data.transfers.find(x => x.id === id);
+  if (tr) { adjustAccountBalance(tr.fromId, Number(tr.amount)); adjustAccountBalance(tr.toId, -Number(tr.amount)); }
+  state.data.transfers = state.data.transfers.filter(x => x.id !== id);
+  closeSheet(); commit();
+}
+function openAccountSheet(id) {
+  const a = id ? state.data.accounts.find(x => x.id === id) : null;
+  const body = `
+    <div class="field"><span class="field-label">Account name</span><input class="input" id="f-name" value="${esc(a?.name||'')}" placeholder="Everyday checking"></div>
+    <div class="field"><span class="field-label">Type</span><div class="segmented" id="f-type-seg">
+      <button type="button" class="${(a?.type||'checking')==='checking'?'seg-active':''}" onclick="setAccType('checking')">Checking</button>
+      <button type="button" class="${a?.type==='savings'?'seg-active':''}" onclick="setAccType('savings')">Savings</button>
+    </div></div>
+    <div class="field"><span class="field-label">Institution (optional)</span><input class="input" id="f-institution" value="${esc(a?.institution||'')}" placeholder="Bank name"></div>
+    <div class="field"><span class="field-label">Current balance</span><input class="input mono" type="number" id="f-balance" value="${a?.balance??''}" placeholder="0.00"></div>`;
+  openSheet(sheetShell(a ? 'Edit account' : 'Add account', body, a ? `deleteAccount('${a.id}')` : null));
+  window._accType = a?.type || 'checking';
+  submitSheet = () => saveAccount(id);
+}
+function setAccType(t) { window._accType = t; document.querySelectorAll('#f-type-seg button').forEach((btn,i) => btn.classList.toggle('seg-active',(i===0)===(t==='checking'))); }
+function saveAccount(id) {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) return;
+  const acc = { id: id || uid(), name, type: window._accType, institution: document.getElementById('f-institution').value, balance: Number(document.getElementById('f-balance').value || 0) };
+  const exists = state.data.accounts.some(x => x.id === acc.id);
+  state.data.accounts = exists ? state.data.accounts.map(x => x.id===acc.id?acc:x) : [...state.data.accounts, acc];
+  closeSheet(); commit();
+}
+function deleteAccount(id) { state.data.accounts = state.data.accounts.filter(a => a.id !== id); closeSheet(); commit(); }
+
+/* ---------------- Paycheck ---------------- */
+function renderPaycheck() {
+  const d = state.data, viewMonth = state.paycheckMonth, mk = monthKey(viewMonth);
+  const receivedEntry = p => d.incomeLog.find(l => l.id === `paycheck:${p.id}:${mk}`);
+  const list = d.paychecks
+    .filter(p => p.recurrence === 'monthly' || (p.recurrence === 'once' && monthKey(new Date(p.date)) === mk))
+    .map(p => {
+      const day = p.recurrence === 'monthly' ? Math.min(p.payDay, daysInMonth(viewMonth.getFullYear(), viewMonth.getMonth())) : new Date(p.date).getDate();
+      const entry = receivedEntry(p);
+      return {...p, _day: day, _received: !!entry, _displayAmount: entry ? Number(entry.amount) : Number(p.amount)};
+    })
+    .sort((a,b) => a._day - b._day);
+  const totalReceived = list.filter(p => p._received).reduce((s,p) => s + p._displayAmount, 0);
+  const totalExpected = list.reduce((s,p) => s + Number(p.amount||0), 0);
+
+  return `
+    <div class="tab-header"><div><h2>Paycheck</h2><p class="tab-sub">${fmt(totalReceived)} of ${fmt(totalExpected)} projected</p></div>
+      <div style="display:flex; align-items:center; gap:8px;">${monthNav(viewMonth, 'shiftPaycheckMonth')}<button class="fab-inline" onclick="openPaycheckSheet()">+</button></div></div>
+    ${list.length === 0 ? `<div class="empty-state" style="margin:0 16px">No paychecks for ${monthName(viewMonth)}.</div>` :
+      `<div class="register">${list.map(p => `
+        <div class="register-row clickable" onclick="openPaycheckSheet('${p.id}')">
+          <button class="check-toggle" onclick="event.stopPropagation(); handlePaycheckCheck('${p.id}')">${p._received ? '&#9989;' : '&#9675;'}</button>
+          <div class="register-left"><div class="register-title ${p._received?'done':''}">${esc(p.name)}</div><div class="register-sub">${p._received ? 'Received' : 'Expected'} the ${ordinal(p._day)}${p._received && p._displayAmount !== Number(p.amount) ? ` &middot; projected ${fmt(p.amount)}` : ''}</div></div>
+          <div class="register-leader"></div>
+          <div class="register-right" style="color:${p._received?'var(--green)':'var(--ink)'}">${fmt(p._displayAmount)}</div>
+        </div>`).join('')}</div>`}
+  `;
+}
+function handlePaycheckCheck(id) {
+  const d = state.data, mk = monthKey(state.paycheckMonth), logId = `paycheck:${id}:${mk}`;
+  const existing = d.incomeLog.find(l => l.id === logId);
+  if (existing) {
+    if (existing.accountId) adjustAccountBalance(existing.accountId, -Number(existing.amount));
+    d.incomeLog = d.incomeLog.filter(l => l.id !== logId);
+    commit();
+  } else {
+    openReceiveSheet(id);
+  }
+}
+function openReceiveSheet(id) {
+  const p = state.data.paychecks.find(x => x.id === id);
+  if (!p) return;
+  const body = `
+    <p class="insight-text" style="margin-top:0;">Projected amount: ${fmt(p.amount)}</p>
+    <div class="field"><span class="field-label">Actual amount received</span><input class="input mono" type="number" id="f-actual" value="${p.amount}" placeholder="0.00"></div>`;
+  openSheet(sheetShell('Confirm paycheck', body, null));
+  submitSheet = () => confirmReceived(id);
+}
+function confirmReceived(id) {
+  const actual = Number(document.getElementById('f-actual').value);
+  if (!actual) return;
+  const d = state.data, mk = monthKey(state.paycheckMonth), logId = `paycheck:${id}:${mk}`;
+  const p = d.paychecks.find(x => x.id === id);
+  const payDate = monthKey(new Date()) === mk ? new Date().toISOString().slice(0,10) : `${mk}-01`;
+  const entry = { id: logId, paycheckId: id, amount: actual, accountId: p.accountId || '', date: payDate };
+  d.incomeLog = [...d.incomeLog, entry];
+  if (p.accountId) adjustAccountBalance(p.accountId, actual);
+  closeSheet(); commit();
+}
+function openPaycheckSheet(id) {
+  const p = id ? state.data.paychecks.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">Name</span><input class="input" id="f-name" value="${esc(p?.name||'')}" placeholder="Employer, side gig..."></div>
+    <div class="field"><span class="field-label">Amount (per paycheck)</span><input class="input mono" type="number" id="f-amount" value="${p?.amount??''}" placeholder="0.00"></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Deposit into account</span><select class="input" id="f-account"><option value="">Not tracked</option>${accounts.map(a => `<option value="${a.id}" ${p?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}
+    <div class="field"><span class="field-label">Frequency</span>
+      <div class="segmented" id="f-recurrence-seg">
+        <button type="button" class="${(p?.recurrence||'monthly')==='monthly'?'seg-active':''}" onclick="setPayRecurrence('monthly')">Monthly</button>
+        <button type="button" class="${p?.recurrence==='once'?'seg-active':''}" onclick="setPayRecurrence('once')">One-time</button>
+      </div>
+    </div>
+    <div id="f-recurrence-fields"></div>`;
+  openSheet(sheetShell(p ? 'Edit paycheck' : 'Add paycheck', body, p ? `deletePaycheck('${p.id}')` : null));
+  window._payRecurrence = p?.recurrence || 'monthly';
+  window._payDay = p?.payDay || 1;
+  window._payDate = p?.date || new Date().toISOString().slice(0,10);
+  renderPayRecurrenceFields();
+  submitSheet = () => savePaycheck(id);
+}
+function setPayRecurrence(r) {
+  window._payRecurrence = r;
+  document.querySelectorAll('#f-recurrence-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===0)===(r==='monthly')));
+  renderPayRecurrenceFields();
+}
+function renderPayRecurrenceFields() {
+  const el = document.getElementById('f-recurrence-fields');
+  if (window._payRecurrence === 'monthly') {
+    el.innerHTML = `<div class="field"><span class="field-label">Pay day of month</span><input class="input mono" type="number" min="1" max="31" id="f-payday" value="${window._payDay}"></div>`;
+  } else {
+    el.innerHTML = `<div class="field"><span class="field-label">Pay date</span><input class="input mono" type="date" id="f-date" value="${window._payDate}"></div>`;
+  }
+}
+function savePaycheck(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const amount = document.getElementById('f-amount').value;
+  if (!name || !amount) return;
+  const accEl = document.getElementById('f-account');
+  const existing = state.data.paychecks.find(x => x.id === id);
+  const paycheck = {
+    id: id || uid(), name, amount: Number(amount),
+    accountId: accEl ? accEl.value : (existing?.accountId || ''),
+    recurrence: window._payRecurrence,
+    payDay: window._payRecurrence === 'monthly' ? Number(document.getElementById('f-payday').value || 1) : (existing?.payDay || 1),
+    date: window._payRecurrence === 'once' ? document.getElementById('f-date').value : (existing?.date || new Date().toISOString().slice(0,10)),
+  };
+  const exists = state.data.paychecks.some(x => x.id === paycheck.id);
+  state.data.paychecks = exists ? state.data.paychecks.map(x => x.id===paycheck.id?paycheck:x) : [...state.data.paychecks, paycheck];
+  closeSheet(); commit();
+}
+function deletePaycheck(id) {
+  const relatedLogs = state.data.incomeLog.filter(l => l.paycheckId === id);
+  relatedLogs.forEach(l => { if (l.accountId) adjustAccountBalance(l.accountId, -Number(l.amount)); });
+  state.data.incomeLog = state.data.incomeLog.filter(l => l.paycheckId !== id);
+  state.data.paychecks = state.data.paychecks.filter(p => p.id !== id);
+  closeSheet(); commit();
+}
+
+/* ---------------- Savings ---------------- */
+function renderSavings() {
+  const d = state.data;
+  return `
+    <div class="tab-header"><div><h2>Savings goals</h2><p class="tab-sub">${d.goals.length} goal${d.goals.length!==1?'s':''}</p></div>
+      <button class="fab-inline" onclick="openGoalSheet()">+</button></div>
+    ${d.goals.length === 0 ? `<div class="empty-state" style="margin:0 16px">No savings goals yet. Add one to track progress.</div>` :
+      `<div style="padding:0 16px">${d.goals.map(g => `<div onclick="openGoalSheet('${g.id}')" style="cursor:pointer">${goalCard(g)}</div>`).join('')}</div>`}
+  `;
+}
+function openGoalSheet(id) {
+  const g = id ? state.data.goals.find(x => x.id === id) : null;
+  const body = `
+    <div class="field"><span class="field-label">Goal name</span><input class="input" id="f-name" value="${esc(g?.name||'')}" placeholder="Emergency fund"></div>
+    <div class="field"><span class="field-label">Target amount</span><input class="input mono" type="number" id="f-target" value="${g?.target??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Saved so far</span><input class="input mono" type="number" id="f-current" value="${g?.current??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Target date (optional)</span><input class="input mono" type="date" id="f-date" value="${g?.targetDate||''}"></div>`;
+  openSheet(sheetShell(g ? 'Edit goal' : 'Add savings goal', body, g ? `deleteGoal('${g.id}')` : null));
+  submitSheet = () => saveGoal(id);
+}
+function saveGoal(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const target = document.getElementById('f-target').value;
+  if (!name || !target) return;
+  const goal = { id: id || uid(), name, target: Number(target), current: Number(document.getElementById('f-current').value || 0), targetDate: document.getElementById('f-date').value };
+  const exists = state.data.goals.some(x => x.id === goal.id);
+  state.data.goals = exists ? state.data.goals.map(x => x.id===goal.id?goal:x) : [...state.data.goals, goal];
+  closeSheet(); commit();
+}
+function deleteGoal(id) { state.data.goals = state.data.goals.filter(g => g.id !== id); closeSheet(); commit(); }
+
+/* ---------------- Loans ---------------- */
+function simulatePayoff(loansIn, extraPerMonth, strategy) {
+  const loans = loansIn.filter(l => Number(l.balance) > 0);
+  if (!loans.length) return { order: [], months: 0, totalInterest: 0, capped: false };
+  let working = loans.map(l => ({ id: l.id, name: l.name, balance: Number(l.balance), rate: Number(l.rate)||0, minPayment: Number(l.minPayment)||0, totalInterest: 0, payoffMonth: null }));
+  const order = [...working].sort((a,b) => strategy === 'avalanche' ? b.rate - a.rate : a.balance - b.balance).map(l => l.id);
+  const totalMinBudget = working.reduce((s,l) => s + l.minPayment, 0);
+  let month = 0;
+  const maxMonths = 600;
+  while (working.some(l => l.balance > 0) && month < maxMonths) {
+    month++;
+    working.forEach(l => {
+      if (l.balance <= 0) return;
+      const interest = l.balance * (l.rate / 100 / 12);
+      l.totalInterest += interest;
+      l.balance += interest;
+      const pay = Math.min(l.minPayment, l.balance);
+      l.balance -= pay;
+      if (l.balance <= 0.005) { l.balance = 0; if (l.payoffMonth === null) l.payoffMonth = month; }
+    });
+    const activeMinSum = working.reduce((s,l) => s + (l.balance > 0 ? l.minPayment : 0), 0);
+    let extraPool = extraPerMonth + (totalMinBudget - activeMinSum);
+    for (const id of order) {
+      if (extraPool <= 0) break;
+      const l = working.find(x => x.id === id);
+      if (l.balance <= 0) continue;
+      const pay = Math.min(extraPool, l.balance);
+      l.balance -= pay;
+      extraPool -= pay;
+      if (l.balance <= 0.005) { l.balance = 0; if (l.payoffMonth === null) l.payoffMonth = month; }
+    }
+  }
+  const totalInterest = working.reduce((s,l) => s + l.totalInterest, 0);
+  return { order: order.map(id => working.find(l => l.id === id)), months: month, totalInterest, capped: month >= maxMonths };
+}
+function renderPayoffPlan() {
+  const loans = state.data.loans.filter(l => Number(l.balance) > 0);
+  if (loans.length < 1) return '';
+  const strategy = state._payoffStrategy || 'avalanche';
+  const extra = state._payoffExtra || 0;
+  return `
+    <div class="section">
+      <div class="section-head"><h4>Payoff plan</h4></div>
+      <div class="segmented">
+        <button type="button" class="${strategy==='avalanche'?'seg-active':''}" onclick="setPayoffStrategy('avalanche')">Avalanche</button>
+        <button type="button" class="${strategy==='snowball'?'seg-active':''}" onclick="setPayoffStrategy('snowball')">Snowball</button>
+      </div>
+      <div class="field" style="margin-top:12px;"><span class="field-label">Extra toward debt each month</span><input class="input mono" type="number" id="payoff-extra" value="${extra||''}" placeholder="0.00" oninput="updatePayoffExtra(this.value)"></div>
+      <div id="payoff-results">${renderPayoffResults()}</div>
+    </div>
+  `;
+}
+function renderPayoffResults() {
+  const loans = state.data.loans.filter(l => Number(l.balance) > 0);
+  const strategy = state._payoffStrategy || 'avalanche';
+  const extra = state._payoffExtra || 0;
+  const result = simulatePayoff(loans, extra, strategy);
+  return `
+    <p class="insight-text">${strategy==='avalanche' ? 'Avalanche pays off the highest interest rate first — saves the most money overall.' : 'Snowball pays off the smallest balance first — clears accounts fastest for momentum.'}</p>
+    ${result.capped ? `<p class="insight-text" style="color:var(--rust)">At this rate it won't pay off within 50 years — try adding to the extra payment.</p>` : `
+    <p class="insight-text">Debt-free in <strong>${Math.floor(result.months/12)}y ${result.months%12}m</strong>, paying <strong>${fmt(result.totalInterest)}</strong> in total interest.</p>
+    <div class="register">
+      ${result.order.map((l,i) => `<div class="register-row"><div class="register-left"><div class="register-title">${i+1}. ${esc(l.name)}</div><div class="register-sub">Paid off in ${Math.floor(l.payoffMonth/12)}y ${l.payoffMonth%12}m</div></div><div class="register-leader"></div><div class="register-right">${fmt(l.totalInterest)} interest</div></div>`).join('')}
+    </div>`}
+  `;
+}
+function setPayoffStrategy(s) { state._payoffStrategy = s; renderAll(); }
+function updatePayoffExtra(v) {
+  state._payoffExtra = Number(v) || 0;
+  const el = document.getElementById('payoff-results');
+  if (el) el.innerHTML = renderPayoffResults();
+}
+function renderLoans() {
+  const d = state.data;
+  const total = d.loans.reduce((s,l) => s + Number(l.balance||0), 0);
+  const loanName = id => d.loans.find(l => l.id === id)?.name || 'Deleted loan';
+  const accName = id => id ? (d.accounts.find(a => a.id === id)?.name || 'Deleted account') : null;
+  const recentBorrowing = [...(d.borrowLog||[])].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+  const recentPayments = [...(d.loanPayments||[])].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+  const interestPaid = loanId => (d.loanPayments||[]).filter(p => p.loanId === loanId).reduce((s,p) => s + Number(p.interest||0), 0);
+  return `
+    <div class="tab-header"><div><h2>Loans</h2><p class="tab-sub">${fmt(total)} owed</p></div>
+      <div style="display:flex; gap:8px;">
+        ${d.loans.length ? `<button class="fab-inline" style="background:var(--steel)" onclick="openBorrowSheet()">&#8593;</button>` : ''}
+        <button class="fab-inline" onclick="openLoanSheet()">+</button>
+      </div></div>
+    ${d.loans.length === 0 ? `<div class="empty-state" style="margin:0 16px">No loans added yet.</div>` :
+      `<div style="padding:0">${d.loans.map(l => {
+        const months = payoffMonths(Number(l.balance), Number(l.rate), Number(l.minPayment));
+        const payoffText = months == null ? "won't pay off at this rate" : months >= 1200 ? '100+ yrs' : `~${Math.floor(months/12)}y ${months%12}m to payoff`;
+        const paidInterest = interestPaid(l.id);
+        return `<div class="loan-card" onclick="openLoanSheet('${l.id}')">
+          <div class="loan-top"><span class="loan-name">${esc(l.name)}${l.trackInBills ? ' <span class="mono" style="font-size:9px; color:var(--amber);">IN BILLS</span>' : ''}</span><span class="loan-balance mono">${fmt(l.balance)}</span></div>
+          <div class="loan-meta"><span>${l.rate}% APR</span><span>${fmt(l.minPayment)}/mo</span><span>${payoffText}</span></div>
+          ${paidInterest > 0 ? `<div class="loan-meta" style="margin-top:3px;"><span>${fmt(paidInterest)} interest paid to date</span></div>` : ''}
+        </div>`;
+      }).join('')}</div>`}
+    ${recentPayments.length ? `
+    <div class="section">
+      <div class="section-head"><h4>Payment history</h4></div>
+      <div class="register">${recentPayments.map(p => `
+        <div class="register-row"><div class="register-left"><div class="register-title">${esc(loanName(p.loanId))}</div><div class="register-sub">${new Date(p.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})} &middot; ${fmt(p.principal)} principal, ${fmt(p.interest)} interest</div></div><div class="register-leader"></div><div class="register-right">${fmt(p.amount)}</div></div>`).join('')}</div>
+    </div>` : ''}
+    ${recentBorrowing.length ? `
+    <div class="section">
+      <div class="section-head"><h4>Recent borrowing</h4></div>
+      <div class="register">${recentBorrowing.map(b => `
+        <div class="register-row clickable" onclick="openBorrowSheet('${b.id}')">
+          <div class="register-left"><div class="register-title">${esc(loanName(b.loanId))}</div><div class="register-sub">${new Date(b.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${accName(b.accountId) ? ' &middot; into ' + esc(accName(b.accountId)) : ''}${b.note ? ' &middot; ' + esc(b.note) : ''}</div></div>
+          <div class="register-leader"></div><div class="register-right" style="color:var(--rust)">+${fmt(b.amount)}</div>
+        </div>`).join('')}</div>
+    </div>` : ''}
+    ${renderPayoffPlan()}
+  `;
+}
+function openLoanSheet(id) {
+  const l = id ? state.data.loans.find(x => x.id === id) : null;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">Loan name</span><input class="input" id="f-name" value="${esc(l?.name||'')}" placeholder="Student loan, auto loan..."></div>
+    <div class="field"><span class="field-label">Current balance</span><input class="input mono" type="number" id="f-balance" value="${l?.balance??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Interest rate (APR %)</span><input class="input mono" type="number" id="f-rate" value="${l?.rate??''}" placeholder="0.0"></div>
+    <div class="field"><span class="field-label">Minimum monthly payment</span><input class="input mono" type="number" id="f-payment" value="${l?.minPayment??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Due day of month</span><input class="input mono" type="number" min="1" max="31" id="f-dueday" value="${l?.dueDay??1}"></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Pay from account</span><select class="input" id="f-account"><option value="">Not tracked</option>${accounts.map(a => `<option value="${a.id}" ${l?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}
+    <div class="field"><span class="field-label">Track this loan's payments in Bills</span>
+      <div class="segmented" id="f-tracklink-seg">
+        <button type="button" class="${!l?.trackInBills?'seg-active':''}" onclick="setLoanTrackLink(false)">No</button>
+        <button type="button" class="${l?.trackInBills?'seg-active':''}" onclick="setLoanTrackLink(true)">Yes</button>
+      </div>
+      <p class="fine-print" style="padding:0; margin-top:6px;">Creates a recurring Bill for the minimum payment. Paying it deducts the full amount from your account and automatically splits it into principal/interest on this loan.</p>
+    </div>`;
+  openSheet(sheetShell(l ? 'Edit loan' : 'Add loan', body, l ? `deleteLoan('${l.id}')` : null));
+  window._loanTrackLink = !!l?.trackInBills;
+  submitSheet = () => saveLoan(id);
+}
+function setLoanTrackLink(v) {
+  window._loanTrackLink = v;
+  document.querySelectorAll('#f-tracklink-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===1)===v));
+}
+function saveLoan(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const balance = document.getElementById('f-balance').value;
+  if (!name || !balance) return;
+  const accEl = document.getElementById('f-account');
+  const existing = id ? state.data.loans.find(x => x.id === id) : null;
+  const loan = {
+    id: id || uid(), name, balance: Number(balance),
+    rate: Number(document.getElementById('f-rate').value || 0),
+    minPayment: Number(document.getElementById('f-payment').value || 0),
+    dueDay: Number(document.getElementById('f-dueday').value || 1),
+    accountId: accEl ? accEl.value : (existing?.accountId || ''),
+    trackInBills: !!window._loanTrackLink,
+    linkedBillId: existing?.linkedBillId || '',
+  };
+  if (loan.trackInBills) {
+    if (loan.linkedBillId && state.data.bills.some(b => b.id === loan.linkedBillId)) {
+      state.data.bills = state.data.bills.map(b => b.id === loan.linkedBillId
+        ? { ...b, name: `${loan.name} payment`, amount: loan.minPayment, dueDay: loan.dueDay, accountId: loan.accountId, category: 'Debt', recurrence: 'monthly' }
+        : b);
+    } else {
+      const bill = { id: uid(), name: `${loan.name} payment`, amount: loan.minPayment, category: 'Debt', accountId: loan.accountId, autopay: false, recurrence: 'monthly', dueDay: loan.dueDay, date: new Date().toISOString().slice(0,10), linkedType: 'loan', linkedId: loan.id };
+      state.data.bills = [...state.data.bills, bill];
+      loan.linkedBillId = bill.id;
+    }
+  } else if (loan.linkedBillId) {
+    state.data.bills = state.data.bills.map(b => b.id === loan.linkedBillId ? { ...b, linkedType: null, linkedId: '' } : b);
+    loan.linkedBillId = '';
+  }
+  const exists = state.data.loans.some(x => x.id === loan.id);
+  state.data.loans = exists ? state.data.loans.map(x => x.id===loan.id?loan:x) : [...state.data.loans, loan];
+  closeSheet(); commit();
+}
+function deleteLoan(id) {
+  const loan = state.data.loans.find(l => l.id === id);
+  if (loan && loan.linkedBillId) {
+    state.data.bills = state.data.bills.map(b => b.id === loan.linkedBillId ? { ...b, linkedType: null, linkedId: '' } : b);
+  }
+  state.data.borrowLog = (state.data.borrowLog||[]).filter(b => b.loanId !== id);
+  state.data.loanPayments = (state.data.loanPayments||[]).filter(p => p.loanId !== id);
+  state.data.loans = state.data.loans.filter(l => l.id !== id);
+  closeSheet(); commit();
+}
+function openBorrowSheet(id) {
+  const entry = id ? state.data.borrowLog.find(x => x.id === id) : null;
+  const loans = state.data.loans;
+  const accounts = state.data.accounts;
+  const body = `
+    <div class="field"><span class="field-label">Loan</span><select class="input" id="f-loan">${loans.map(l => `<option value="${l.id}" ${entry?.loanId===l.id?'selected':''}>${esc(l.name)} (${fmt(l.balance)})</option>`).join('')}</select></div>
+    <div class="field"><span class="field-label">Amount borrowed</span><input class="input mono" type="number" id="f-amount" value="${entry?.amount??''}" placeholder="0.00"></div>
+    ${accounts.length ? `<div class="field"><span class="field-label">Deposit into account (optional)</span><select class="input" id="f-account"><option value="">Not tracked</option>${accounts.map(a => `<option value="${a.id}" ${entry?.accountId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>` : ''}
+    <div class="field"><span class="field-label">Date</span><input class="input mono" type="date" id="f-date" value="${entry?.date || new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><span class="field-label">Note (optional)</span><input class="input" id="f-note" value="${esc(entry?.note||'')}" placeholder="Borrowed from a friend, family loan..."></div>`;
+  openSheet(sheetShell(entry ? 'Edit borrowing' : 'Log new borrowing', body, entry ? `deleteBorrow('${entry.id}')` : null));
+  submitSheet = () => saveBorrow(id);
+}
+function saveBorrow(id) {
+  const loanId = document.getElementById('f-loan').value;
+  const amount = Number(document.getElementById('f-amount').value);
+  const accEl = document.getElementById('f-account');
+  const accountId = accEl ? accEl.value : '';
+  if (!loanId || !amount) return;
+  const existing = id ? state.data.borrowLog.find(x => x.id === id) : null;
+  if (existing) {
+    const oldLoan = state.data.loans.find(l => l.id === existing.loanId);
+    if (oldLoan) oldLoan.balance = Number(oldLoan.balance) - Number(existing.amount);
+    if (existing.accountId) adjustAccountBalance(existing.accountId, -Number(existing.amount));
+  }
+  const loan = state.data.loans.find(l => l.id === loanId);
+  if (loan) loan.balance = Number(loan.balance||0) + amount;
+  if (accountId) adjustAccountBalance(accountId, amount);
+  const entry = { id: id || uid(), loanId, amount, accountId, date: document.getElementById('f-date').value, note: document.getElementById('f-note').value };
+  const exists = state.data.borrowLog.some(x => x.id === entry.id);
+  state.data.borrowLog = exists ? state.data.borrowLog.map(x => x.id===entry.id?entry:x) : [...state.data.borrowLog, entry];
+  closeSheet(); commit();
+}
+function deleteBorrow(id) {
+  const entry = state.data.borrowLog.find(x => x.id === id);
+  if (entry) {
+    const loan = state.data.loans.find(l => l.id === entry.loanId);
+    if (loan) loan.balance = Number(loan.balance) - Number(entry.amount);
+    if (entry.accountId) adjustAccountBalance(entry.accountId, -Number(entry.amount));
+  }
+  state.data.borrowLog = state.data.borrowLog.filter(x => x.id !== id);
+  closeSheet(); commit();
+}
+
+/* ---------------- Taxes ---------------- */
+function renderTaxes() {
+  const t = state.data.tax;
+  return `
+    <div class="tab-header"><div><h2>Tax projection</h2><p class="tab-sub">Federal, tax year 2026</p></div></div>
+    <div class="section">
+      <div class="field"><span class="field-label">Filing status</span>
+        <select class="input" onchange="updateTax('filingStatus', this.value)">
+          <option value="single" ${t.filingStatus==='single'?'selected':''}>Single</option>
+          <option value="mfj" ${t.filingStatus==='mfj'?'selected':''}>Married filing jointly</option>
+          <option value="hoh" ${t.filingStatus==='hoh'?'selected':''}>Head of household</option>
+        </select></div>
+      <div class="field"><span class="field-label">Expected annual gross income</span><input class="input mono" type="number" value="${t.income}" oninput="updateTax('income', this.value)" placeholder="0.00"></div>
+      <div class="field"><span class="field-label">Pre-tax deductions (401k, HSA, etc.)</span><input class="input mono" type="number" value="${t.otherDeductions}" oninput="updateTax('otherDeductions', this.value)" placeholder="0.00"></div>
+      <div class="field"><span class="field-label">Federal withholding (expected for the year)</span><input class="input mono" type="number" value="${t.withholding}" oninput="updateTax('withholding', this.value)" placeholder="0.00"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Dependents &amp; credits</h4></div>
+      <div class="field"><span class="field-label">Qualifying children under 17</span><input class="input mono" type="number" min="0" value="${t.numChildren}" oninput="updateTax('numChildren', this.value)" placeholder="0"></div>
+      <div class="field"><span class="field-label">Other dependents (parents, older kids, etc.)</span><input class="input mono" type="number" min="0" value="${t.numOtherDependents}" oninput="updateTax('numOtherDependents', this.value)" placeholder="0"></div>
+      <div class="field"><span class="field-label">Annual child/dependent care expenses paid</span><input class="input mono" type="number" value="${t.careExpenses}" oninput="updateTax('careExpenses', this.value)" placeholder="0.00"></div>
+      <div class="field"><span class="field-label">Children/dependents receiving that care</span>
+        <div class="segmented" id="f-care-seg">
+          <button type="button" class="${t.careQualifying!=='2+'?'seg-active':''}" onclick="updateTax('careQualifying','1')">1</button>
+          <button type="button" class="${t.careQualifying==='2+'?'seg-active':''}" onclick="updateTax('careQualifying','2+')">2 or more</button>
+        </div>
+      </div>
+      <div class="field"><span class="field-label">Other credits (education, foreign tax, etc.)</span><input class="input mono" type="number" value="${t.credits}" oninput="updateTax('credits', this.value)" placeholder="0.00"></div>
+    </div>
+    <div id="tax-summary">${renderTaxSummary()}</div>
+  `;
+}
+function renderTaxSummary() {
+  const t = state.data.tax;
+  const income = Number(t.income||0), otherDed = Number(t.otherDeductions||0), withholding = Number(t.withholding||0), otherCredits = Number(t.credits||0);
+  const numChildren = Number(t.numChildren||0), numOtherDeps = Number(t.numOtherDependents||0), careExpenses = Number(t.careExpenses||0);
+  const std = STD_DEDUCTION[t.filingStatus];
+  const taxable = Math.max(0, income - otherDed - std);
+  const taxOwed = computeTax(taxable, t.filingStatus);
+  const agi = Math.max(0, income - otherDed);
+  const ctc = computeCTC(numChildren, numOtherDeps, agi, t.filingStatus);
+  const careCredit = careExpenses > 0 ? computeCareCredit(careExpenses, t.careQualifying === '2+' ? 2 : 1, agi) : 0;
+  const eitc = computeEITC(income, numChildren, t.filingStatus);
+  const totalCredits = ctc + careCredit + eitc + otherCredits;
+  const result = withholding + totalCredits - taxOwed;
+  const effRate = income > 0 ? (taxOwed / income) * 100 : 0;
+  return `
+    <div class="ledger-tape small">
+      <div class="tape-label">${result >= 0 ? 'Estimated refund' : 'Estimated amount owed'}</div>
+      <div class="tape-amount ${result<0?'neg':''}">${fmtShort(Math.abs(result))}</div>
+      <div class="tape-row"><span>Taxable income ${fmt(taxable)}</span><span>Effective rate ${effRate.toFixed(1)}%</span></div>
+    </div>
+    <div class="register">
+      <div class="register-row"><div class="register-left"><div class="register-title">Standard deduction</div><div class="register-sub">${FILING_LABEL[t.filingStatus]}</div></div><div class="register-leader"></div><div class="register-right">${fmt(std)}</div></div>
+      <div class="register-row"><div class="register-left"><div class="register-title">Federal tax before credits</div><div class="register-sub">7-bracket progressive calc</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--rust)">${fmt(taxOwed)}</div></div>
+      ${ctc > 0 ? `<div class="register-row"><div class="register-left"><div class="register-title">Child tax credit / other dependents</div><div class="register-sub">${numChildren} child(ren), ${numOtherDeps} other</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--green)">${fmt(ctc)}</div></div>` : ''}
+      ${careCredit > 0 ? `<div class="register-row"><div class="register-left"><div class="register-title">Child/dependent care credit</div><div class="register-sub">${(careCreditRate(agi)*100).toFixed(0)}% of eligible expenses</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--green)">${fmt(careCredit)}</div></div>` : ''}
+      ${eitc > 0 ? `<div class="register-row"><div class="register-left"><div class="register-title">Earned income tax credit</div><div class="register-sub">Based on income &amp; qualifying children</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--green)">${fmt(eitc)}</div></div>` : ''}
+      <div class="register-row"><div class="register-left"><div class="register-title">Withholding</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--green)">${fmt(withholding)}</div></div>
+    </div>
+    <p class="fine-print">This is a rough federal-only estimate using 2026 IRS brackets, standard deduction, Child Tax Credit, Earned Income Tax Credit (official IRS Rev. Proc. 2025-32 parameters), and a simplified Child &amp; Dependent Care Credit. It excludes state taxes, FICA, itemized deductions, the EITC investment-income cap, and other credit nuances (e.g. the dependent care credit's earned-income limitation) — use it for planning, not filing. Consult a tax professional for advice specific to your situation.</p>
+  `;
+}
+function updateTax(field, value) {
+  state.data.tax[field] = value;
+  saveData();
+  if (field === 'filingStatus' || field === 'numChildren' || field === 'numOtherDependents' || field === 'careExpenses' || field === 'careQualifying') {
+    document.getElementById('content').innerHTML = renderTaxes();
+  } else {
+    document.getElementById('tax-summary').innerHTML = renderTaxSummary();
+  }
+}
+
+/* ---------------- Analytics ---------------- */
+function categorySpend(mk, d) {
+  const map = {};
+  d.transactions.filter(t => monthKey(new Date(t.date)) === mk).forEach(t => { map[t.category] = (map[t.category]||0) + Number(t.amount||0); });
+  return map;
+}
+function monthIncome(mk, d) {
+  return d.incomeLog.filter(l => monthKey(new Date(l.date)) === mk).reduce((s,l) => s + Number(l.amount||0), 0)
+    + (d.adjustments||[]).filter(a => a.type === 'deposit' && monthKey(new Date(a.date)) === mk).reduce((s,a) => s + Number(a.amount||0), 0);
+}
+function svgBarChart(points, opts) {
+  opts = opts || {};
+  const w = opts.width || 320, h = opts.height || 100, pad = 6, gap = 6, labelH = 14;
+  const vals = points.map(p => p.value);
+  const max = Math.max(...vals, 1);
+  const barW = (w - pad*2 - gap*(points.length-1)) / Math.max(1, points.length);
+  const bars = points.map((p,i) => {
+    const barH = Math.max(2, (p.value / max) * (h - pad*2 - labelH));
+    const x = pad + i*(barW+gap);
+    const y = h - pad - labelH - barH;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="2" fill="${p.color || opts.color || 'var(--green)'}" />
+      <text x="${(x+barW/2).toFixed(1)}" y="${h-pad}" font-size="9" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${esc(p.label)}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block; overflow:visible;">${bars}</svg>`;
+}
+function svgLineChart(points, opts) {
+  opts = opts || {};
+  const w = opts.width || 320, h = opts.height || 90, pad = 8, labelH = 14;
+  const vals = points.map(p => p.value);
+  const min = Math.min(0, ...vals), max = Math.max(...vals, 1);
+  const range = (max - min) || 1;
+  const chartH = h - labelH - pad;
+  const stepX = (w - pad*2) / Math.max(1, points.length - 1);
+  const coords = points.map((p,i) => {
+    const x = pad + i*stepX;
+    const y = pad + chartH - ((p.value - min) / range) * chartH;
+    return { x, y };
+  });
+  const line = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+  const color = opts.color || 'var(--green)';
+  const labels = points.map((p,i) => `<text x="${coords[i].x.toFixed(1)}" y="${h-2}" font-size="9" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${esc(p.label)}</text>`).join('');
+  const dots = coords.map(c => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="2.5" fill="${color}" />`).join('');
+  const zeroY = pad + chartH - ((0 - min) / range) * chartH;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block; overflow:visible;">
+    ${min < 0 ? `<line x1="${pad}" y1="${zeroY.toFixed(1)}" x2="${w-pad}" y2="${zeroY.toFixed(1)}" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2,2" />` : ''}
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2" />
+    ${dots}${labels}
+  </svg>`;
+}
+function accountDeltas(d) {
+  const deltas = [];
+  d.transactions.forEach(t => { if (t.accountId) deltas.push({ date: t.date, accountId: t.accountId, delta: -Number(t.amount||0) }); });
+  d.transfers.forEach(tr => {
+    deltas.push({ date: tr.date, accountId: tr.fromId, delta: -Number(tr.amount||0) });
+    deltas.push({ date: tr.date, accountId: tr.toId, delta: Number(tr.amount||0) });
+  });
+  (d.adjustments||[]).forEach(a => { deltas.push({ date: a.date, accountId: a.accountId, delta: a.type==='deposit' ? Number(a.amount||0) : -Number(a.amount||0) }); });
+  (d.incomeLog||[]).forEach(l => { if (l.accountId) deltas.push({ date: l.date, accountId: l.accountId, delta: Number(l.amount||0) }); });
+  (d.borrowLog||[]).forEach(b => { if (b.accountId) deltas.push({ date: b.date, accountId: b.accountId, delta: Number(b.amount||0) }); });
+  return deltas;
+}
+function loanBalanceDeltas(d) {
+  const deltas = [];
+  (d.loanPayments||[]).forEach(p => { deltas.push({ date: p.date, loanId: p.loanId, delta: -Number(p.principal||0) }); });
+  (d.borrowLog||[]).forEach(b => { deltas.push({ date: b.date, loanId: b.loanId, delta: Number(b.amount||0) }); });
+  return deltas;
+}
+function netWorthHistory(monthsBack) {
+  const d = state.data, now = new Date();
+  const accDeltas = accountDeltas(d).sort((a,b) => new Date(b.date) - new Date(a.date));
+  const loanDeltas = loanBalanceDeltas(d).sort((a,b) => new Date(b.date) - new Date(a.date));
+  const accCursor = {}; d.accounts.forEach(a => accCursor[a.id] = Number(a.balance||0));
+  const loanCursor = {}; d.loans.forEach(l => loanCursor[l.id] = Number(l.balance||0));
+  let ai = 0, li = 0;
+  const results = [];
+  for (let i = 0; i <= monthsBack; i++) {
+    const mDate = addMonths(startOfMonth(now), -i);
+    const mEnd = new Date(mDate.getFullYear(), mDate.getMonth()+1, 0, 23, 59, 59);
+    while (ai < accDeltas.length && new Date(accDeltas[ai].date) > mEnd) {
+      if (accCursor[accDeltas[ai].accountId] !== undefined) accCursor[accDeltas[ai].accountId] -= accDeltas[ai].delta;
+      ai++;
+    }
+    while (li < loanDeltas.length && new Date(loanDeltas[li].date) > mEnd) {
+      if (loanCursor[loanDeltas[li].loanId] !== undefined) loanCursor[loanDeltas[li].loanId] -= loanDeltas[li].delta;
+      li++;
+    }
+    const totalAcc = Object.values(accCursor).reduce((a,b)=>a+b,0);
+    const totalLoan = Object.values(loanCursor).reduce((a,b)=>a+b,0);
+    results.unshift({ label: mDate.toLocaleDateString('en-US',{month:'short'}), value: totalAcc - totalLoan });
+  }
+  return results;
+}
+function spendingTrend(monthsBack) {
+  const now = new Date(), out = [];
+  for (let i = monthsBack; i >= 0; i--) {
+    const mDate = addMonths(startOfMonth(now), -i);
+    const total = Object.values(categorySpend(monthKey(mDate), state.data)).reduce((a,b)=>a+b,0);
+    out.push({ label: mDate.toLocaleDateString('en-US',{month:'short'}), value: total });
+  }
+  return out;
+}
+function generateInsights() {
+  const d = state.data, now = new Date(), mk = monthKey(now);
+  const prevMK = monthKey(addMonths(now, -1));
+  const insights = [];
+
+  const spentThis = categorySpend(mk, d), spentPrev = categorySpend(prevMK, d);
+  const catChanges = Object.keys({...spentThis, ...spentPrev})
+    .map(cat => {
+      const cur = spentThis[cat]||0, prev = spentPrev[cat]||0;
+      const pct = prev > 0 ? ((cur-prev)/prev*100) : null;
+      return { cat, cur, prev, pct };
+    })
+    .filter(x => x.pct !== null && Math.abs(x.pct) >= 10 && x.prev >= 20)
+    .sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+  if (catChanges.length) {
+    const c = catChanges[0];
+    insights.push({ icon: c.pct > 0 ? '&#128200;' : '&#128201;', text: `${c.cat} is ${c.pct > 0 ? 'up' : 'down'} ${Math.abs(c.pct).toFixed(0)}% from last month.`, tab: 'spending' });
+  }
+
+  const monthBills = d.bills.filter(b => b.recurrence === 'monthly' || (b.recurrence === 'once' && monthKey(new Date(b.date)) === mk));
+  const isPaidBill = b => d.billPayments.includes(`${b.id}:${mk}`);
+  const dueSoonCount = monthBills.filter(b => !isPaidBill(b)).map(b => {
+    const day = b.recurrence === 'monthly' ? Math.min(b.dueDay, daysInMonth(now.getFullYear(), now.getMonth())) : new Date(b.date).getDate();
+    return day - now.getDate();
+  }).filter(diff => diff >= 0 && diff <= 7).length;
+  if (dueSoonCount > 0) insights.push({ icon: '&#128196;', text: `You have ${dueSoonCount} bill${dueSoonCount!==1?'s':''} due in the next 7 days.`, tab: 'bills' });
+
+  const subMonthlyTotal = (d.subscriptions||[]).filter(s => s.cycle === 'monthly').reduce((s,x) => s + Number(x.cost||0), 0);
+  if (subMonthlyTotal > 0) insights.push({ icon: '&#128260;', text: `Subscriptions are ${fmt(subMonthlyTotal)}/month.`, tab: 'subscriptions' });
+
+  if (d.loans.length) {
+    const loanTotal = d.loans.reduce((s,l)=>s+Number(l.balance||0),0);
+    const paymentsThis = (d.loanPayments||[]).filter(p => monthKey(new Date(p.date))===mk);
+    const principalThis = paymentsThis.reduce((s,p)=>s+Number(p.principal||0),0);
+    const borrowedThis = (d.borrowLog||[]).filter(b => monthKey(new Date(b.date))===mk).reduce((s,b)=>s+Number(b.amount||0),0);
+    const netChange = borrowedThis - principalThis;
+    if (principalThis > 0 || borrowedThis > 0) {
+      insights.push({ icon: netChange <= 0 ? '&#128181;' : '&#9888;', text: netChange <= 0 ? `Loan payoff is trending down by about ${fmt(Math.abs(netChange))}/month.` : `Loan balances grew by about ${fmt(netChange)} this month.`, tab: 'loans' });
+    } else {
+      insights.push({ icon: '&#128179;', text: `Total loan balance is ${fmt(loanTotal)}, unchanged this month.`, tab: 'loans' });
+    }
+  }
+
+  const topGoal = d.goals[0];
+  if (topGoal) {
+    const pct = Math.min(100, (Number(topGoal.current)/Math.max(1,Number(topGoal.target)))*100);
+    insights.push({ icon: '&#127919;', text: `${topGoal.name} savings goal is ${pct.toFixed(0)}% complete.`, tab: 'savings' });
+  }
+
+  const overBudget = Object.entries(spentThis).filter(([cat,amt]) => (d.budgets||{})[cat] && amt > d.budgets[cat]);
+  if (overBudget.length) insights.push({ icon: '&#9888;', text: `${overBudget.length} categor${overBudget.length!==1?'ies':'y'} over budget this month: ${overBudget.map(([c])=>c).join(', ')}.`, tab: 'spending' });
+
+  const income = monthIncome(mk, d);
+  const totalSpend = Object.values(spentThis).reduce((a,b)=>a+b,0);
+  if (income > 0) {
+    const rate = ((income-totalSpend)/income*100);
+    insights.push({ icon: rate >= 0 ? '&#128176;' : '&#9888;', text: `Savings rate this month is about ${rate.toFixed(0)}%.`, tab: 'analytics' });
+  }
+
+  const trialsSoon = (d.subscriptions||[]).filter(s => s.cycle==='trial').map(s => ({...s, _days: daysUntil(subNextDate(s))})).filter(s => s._days <= (s.reminderDays||2));
+  if (trialsSoon.length) insights.push({ icon: '&#9888;', text: `${trialsSoon.length} trial${trialsSoon.length!==1?'s':''} ending soon — cancel before ${trialsSoon.length!==1?'they convert':'it converts'} if you don't want to be charged.`, tab: 'subscriptions' });
+
+  return insights;
+}
+function renderInsights() {
+  const insights = generateInsights();
+  if (!insights.length) return '';
+  const visible = insights.slice(0, 4);
+  const rest = insights.slice(4, 6);
+  const row = i => `<div class="register-row clickable" onclick="setTab('${i.tab}')"><div class="register-left"><div class="register-title" style="white-space:normal;">${i.icon} ${i.text}</div></div></div>`;
+  return `
+    <div class="section">
+      <div class="section-head"><h4>Insights</h4></div>
+      <div class="register">${visible.map(row).join('')}</div>
+      ${rest.length ? `<details class="help-item"><summary>View ${rest.length} more insight${rest.length!==1?'s':''}</summary>
+        <div class="register">${rest.map(row).join('')}</div>
+      </details>` : ''}
+    </div>
+  `;
+}
+function openWhatIfSheet() {
+  const html = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-title-row"><h3 class="sheet-title">What if...?</h3><button class="icon-btn" onclick="closeSheet()">&#10005;</button></div>
+    <div class="field"><span class="field-label">Scenario</span>
+      <div class="segmented" id="f-whatif-seg" style="font-size:11px;">
+        <button type="button" class="seg-active" onclick="setWhatIfScenario('income')">Income</button>
+        <button type="button" onclick="setWhatIfScenario('bill')">New bill</button>
+        <button type="button" onclick="setWhatIfScenario('loan')">Loan payoff</button>
+        <button type="button" onclick="setWhatIfScenario('savings')">Savings</button>
+      </div>
+    </div>
+    <div id="whatif-fields"></div>
+    <button class="btn-primary" type="button" style="width:100%; justify-content:center; margin-top:6px;" onclick="calculateWhatIf()">See the effect</button>
+    <div id="whatif-result"></div>
+    <p class="fine-print" style="padding:0; margin-top:12px;">Rough estimate based on this month's numbers and current loan rates — not financial advice.</p>
+  `;
+  openSheet(html);
+  window._whatIfScenario = 'income';
+  renderWhatIfFields();
+}
+function setWhatIfScenario(s) {
+  window._whatIfScenario = s;
+  const order = ['income','bill','loan','savings'];
+  document.querySelectorAll('#f-whatif-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', order[i]===s));
+  renderWhatIfFields();
+  const resultEl = document.getElementById('whatif-result');
+  if (resultEl) resultEl.innerHTML = '';
+}
+function renderWhatIfFields() {
+  const el = document.getElementById('whatif-fields');
+  const s = window._whatIfScenario;
+  if (s === 'income') {
+    el.innerHTML = `<div class="field"><span class="field-label">Change monthly income by (negative for a cut)</span><input class="input mono" type="number" id="wf-amount" placeholder="e.g. 300 or -300"></div>`;
+  } else if (s === 'bill') {
+    el.innerHTML = `<div class="field"><span class="field-label">New monthly bill amount</span><input class="input mono" type="number" id="wf-amount" placeholder="0.00"></div>`;
+  } else if (s === 'loan') {
+    el.innerHTML = `<div class="field"><span class="field-label">Extra toward loans per month</span><input class="input mono" type="number" id="wf-amount" placeholder="0.00"></div>`;
+  } else {
+    el.innerHTML = `<div class="field"><span class="field-label">Extra savings contribution per month</span><input class="input mono" type="number" id="wf-amount" placeholder="0.00"></div>`;
+  }
+}
+function calculateWhatIf() {
+  const s = window._whatIfScenario;
+  const amountEl = document.getElementById('wf-amount');
+  const amount = Number(amountEl ? amountEl.value : 0);
+  const resultEl = document.getElementById('whatif-result');
+  if (!amount) { resultEl.innerHTML = `<p class="insight-text" style="color:var(--rust);">Enter an amount first.</p>`; return; }
+  const d = state.data, mk = monthKey(new Date());
+  const income = monthIncome(mk, d);
+  const spend = Object.values(categorySpend(mk, d)).reduce((a,b)=>a+b,0);
+  const currentFlow = income - spend;
+
+  if (s === 'income') {
+    const newFlow = currentFlow + amount;
+    resultEl.innerHTML = `<div class="ledger-tape small"><div class="tape-label">Monthly cash flow</div><div class="tape-amount ${newFlow<0?'neg':''}">${fmtShort(newFlow)}</div><div class="tape-row"><span>Currently ${fmtShort(currentFlow)}</span><span>${amount>=0?'+':''}${fmt(amount)}/mo</span></div></div>
+      <p class="insight-text">You would have about ${fmt(Math.abs(amount))} ${amount>=0?'more':'less'} per month.</p>`;
+  } else if (s === 'bill') {
+    const newFlow = currentFlow - amount;
+    resultEl.innerHTML = `<div class="ledger-tape small"><div class="tape-label">Monthly cash flow</div><div class="tape-amount ${newFlow<0?'neg':''}">${fmtShort(newFlow)}</div><div class="tape-row"><span>Currently ${fmtShort(currentFlow)}</span><span>-${fmt(amount)}/mo</span></div></div>
+      <p class="insight-text">A new ${fmt(amount)}/month bill would run about ${fmt(amount*12)}/year and bring your monthly cash flow to about ${fmtShort(newFlow)}.</p>`;
+  } else if (s === 'loan') {
+    const loans = d.loans.filter(l => Number(l.balance) > 0);
+    if (!loans.length) { resultEl.innerHTML = `<p class="insight-text" style="color:var(--rust);">No active loans to test this against.</p>`; return; }
+    const baseline = simulatePayoff(loans, 0, 'avalanche');
+    const scenario = simulatePayoff(loans, amount, 'avalanche');
+    const monthsSaved = baseline.months - scenario.months;
+    const interestSaved = baseline.totalInterest - scenario.totalInterest;
+    resultEl.innerHTML = `<p class="insight-text">Paying an extra ${fmt(amount)}/month toward loans (avalanche order) could move payoff up by about ${monthsSaved} month${monthsSaved!==1?'s':''}, saving roughly ${fmt(Math.max(0,interestSaved))} in interest.</p>
+      <p class="fine-print" style="padding:0;">Baseline payoff: ${Math.floor(baseline.months/12)}y ${baseline.months%12}m. With extra: ${Math.floor(scenario.months/12)}y ${scenario.months%12}m.</p>`;
+  } else {
+    const topGoal = d.goals[0];
+    const yearTotal = amount * 12;
+    let goalText = '';
+    if (topGoal) {
+      const remaining = Math.max(0, Number(topGoal.target) - Number(topGoal.current));
+      const monthsToGoal = remaining > 0 ? Math.ceil(remaining / amount) : 0;
+      goalText = ` At that pace alone, ${esc(topGoal.name)} (${fmt(remaining)} to go) would take about ${monthsToGoal} month${monthsToGoal!==1?'s':''} — assuming no other contributions.`;
+    }
+    resultEl.innerHTML = `<p class="insight-text">Saving an extra ${fmt(amount)}/month adds up to about ${fmt(yearTotal)} over a year.${goalText}</p>`;
+  }
+}
+function renderAnalytics() {
+  const d = state.data, viewMonth = state.analyticsMonth, mk = monthKey(viewMonth);
+  const isCurrentMonth = mk === monthKey(new Date());
+  const prevMonthDate = addMonths(viewMonth, -1), prevMK = monthKey(prevMonthDate);
+
+  const spentThis = categorySpend(mk, d), spentPrev = categorySpend(prevMK, d);
+  const totalThis = Object.values(spentThis).reduce((a,b)=>a+b,0);
+  const totalPrev = Object.values(spentPrev).reduce((a,b)=>a+b,0);
+  const incomeThis = monthIncome(mk, d), incomePrev = monthIncome(prevMK, d);
+  const rateThis = incomeThis > 0 ? ((incomeThis - totalThis) / incomeThis * 100) : null;
+  const billsPaidThis = d.transactions.filter(t => t.source === 'bill' && monthKey(new Date(t.date)) === mk);
+  const billsPaidThisTotal = billsPaidThis.reduce((s,t) => s + Number(t.amount||0), 0);
+  const topCats = Object.entries(spentThis).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+  const changes = Object.keys({...spentThis, ...spentPrev})
+    .map(cat => {
+      const cur = spentThis[cat]||0, prev = spentPrev[cat]||0, budget = (d.budgets||{})[cat];
+      return { cat, cur, prev, delta: cur - prev, overBudget: budget && cur > budget, budget };
+    })
+    .filter(x => x.cur > 0 || x.prev > 0)
+    .sort((a,b) => b.delta - a.delta);
+  const risers = changes.filter(x => x.delta > 0).slice(0, 3);
+  const overBudgetNow = changes.filter(x => x.overBudget);
+
+  const loanTotal = d.loans.reduce((s,l) => s + Number(l.balance||0), 0);
+  const loanPaymentsThis = (d.loanPayments||[]).filter(p => monthKey(new Date(p.date)) === mk);
+  const interestPaidThis = loanPaymentsThis.reduce((s,p) => s + Number(p.interest||0), 0);
+  const principalPaidThis = loanPaymentsThis.reduce((s,p) => s + Number(p.principal||0), 0);
+
+  const subMonthlyTotal = (d.subscriptions||[]).filter(s => s.cycle === 'monthly').reduce((s,x) => s + Number(x.cost||0), 0);
+
+  const sentences = [];
+  if (incomeThis > 0) {
+    sentences.push(`In ${monthName(viewMonth)}${isCurrentMonth ? ' so far' : ''}, you brought in ${fmt(incomeThis)} and spent ${fmt(totalThis)}${rateThis !== null ? `, a savings rate of ${rateThis.toFixed(0)}%` : ''}.`);
+  } else if (totalThis > 0) {
+    sentences.push(`In ${monthName(viewMonth)}${isCurrentMonth ? ' so far' : ''}, you spent ${fmt(totalThis)}. No paychecks were logged that month, so a savings rate can't be calculated.`);
+  }
+  if (totalPrev > 0 && totalThis > 0) {
+    const diff = totalThis - totalPrev;
+    sentences.push(`That's ${diff >= 0 ? 'up' : 'down'} ${fmt(Math.abs(diff))} from ${monthName(prevMonthDate)}.`);
+  }
+  if (topCats.length) {
+    sentences.push(`Biggest categories: ${topCats.slice(0,3).map(([c,a]) => `${c} (${fmt(a)})`).join(', ')}.`);
+  }
+  if (billsPaidThis.length) {
+    sentences.push(`${billsPaidThis.length} bill${billsPaidThis.length!==1?'s':''} totaling ${fmt(billsPaidThisTotal)} ${billsPaidThis.length!==1?'were':'was'} paid through the app.`);
+  }
+  if (loanPaymentsThis.length) {
+    sentences.push(`Loan payments moved ${fmt(principalPaidThis)} to principal and ${fmt(interestPaidThis)} to interest.`);
+  }
+  if (subMonthlyTotal > 0) {
+    sentences.push(`Active monthly subscriptions currently total ${fmt(subMonthlyTotal)}/mo.`);
+  }
+  if (!sentences.length) sentences.push(`Not enough data logged for ${monthName(viewMonth)} yet — keep tracking and it'll fill in.`);
+
+  const nwHistory = netWorthHistory(5);
+  const spendHistory = spendingTrend(5);
+  const nwDelta = nwHistory.length > 1 ? nwHistory[nwHistory.length-1].value - nwHistory[0].value : 0;
+
+  return `
+    <div class="tab-header"><div><h2>Analytics</h2><p class="tab-sub">Trends &amp; monthly recap</p></div>
+      ${monthNav(viewMonth, 'shiftAnalyticsMonth')}</div>
+    ${renderInsights()}
+
+    <div class="section">
+      <div class="section-head"><h4>${monthName(viewMonth)}${isCurrentMonth ? ' (so far)' : ''}</h4></div>
+      ${sentences.map(s => `<p class="insight-text">${s}</p>`).join('')}
+      ${risers.length ? `<div class="register">${risers.map(r => `
+        <div class="register-row"><div class="register-left"><div class="register-title">${esc(r.cat)}</div><div class="register-sub">${fmt(r.prev)} prior month &#8594; ${fmt(r.cur)} this month</div></div><div class="register-leader"></div><div class="register-right" style="color:var(--rust)">+${fmtShort(r.delta)}</div></div>`).join('')}</div>` : ''}
+      ${overBudgetNow.length ? `<p class="insight-text" style="color:var(--rust)">Over budget: ${overBudgetNow.map(x => `${x.cat} (${fmt(x.cur)} of ${fmt(x.budget)})`).join(', ')}.</p>` : ''}
+    </div>
+
+    ${topCats.length ? `
+    <div class="section">
+      <div class="section-head"><h4>Spending by category</h4></div>
+      ${svgBarChart(topCats.map(([c,a]) => ({ label: c.length > 8 ? c.slice(0,7)+'.' : c, value: a })), { color: 'var(--green)' })}
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-head"><h4>Spending, last 6 months</h4></div>
+      ${svgBarChart(spendHistory, { color: 'var(--steel)' })}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h4>Net worth trend</h4></div>
+      ${svgLineChart(nwHistory, { color: nwDelta >= 0 ? 'var(--green)' : 'var(--rust)' })}
+      <p class="fine-print" style="margin-top:6px;">${nwHistory.length > 1 ? `${nwDelta >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(nwDelta))} over this period.` : ''} Approximate — reconstructed from logged transactions, transfers, and payments. Directly editing an account or loan balance won't be reflected in past months.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h4>Debt</h4></div>
+      <p class="insight-text">Total loan balance is ${fmt(loanTotal)}${loanPaymentsThis.length ? `, after ${fmt(principalPaidThis)} in principal paid down this month` : ''}.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h4>What if...?</h4></div>
+      <p class="insight-text" style="margin-top:0;">Try a quick scenario — an income change, a new bill, extra toward loans, or extra savings — and see the rough effect.</p>
+      <button class="btn-primary" style="margin:0; background: var(--steel)" onclick="openWhatIfSheet()">Try a scenario</button>
+    </div>
+  `;
+}
+
+/* ---------------- Sync ---------------- */
+let pendingImport = null;
+function renderNavCustomizer() {
+  const pinned = getPinnedTabs();
+  const rows = TABS.map(t => {
+    const isPinned = pinned.includes(t.key);
+    const idx = pinned.indexOf(t.key);
+    return `<div class="register-row">
+      <div class="register-left"><div class="register-title">${t.icon} ${esc(t.label)}</div></div>
+      <div class="register-leader"></div>
+      <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+        ${isPinned ? `
+          <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="moveNavPin('${t.key}',-1)" ${idx===0?'disabled':''}>&#8593;</button>
+          <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="moveNavPin('${t.key}',1)" ${idx===pinned.length-1?'disabled':''}>&#8595;</button>
+        ` : ''}
+        <button class="icon-btn" style="width:26px;height:26px;font-size:12px;${isPinned?`background:var(--green);color:var(--tape-text);border-color:var(--green);`:''}" onclick="toggleNavPin('${t.key}')">${isPinned ? '&#10003;' : '&#43;'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="register">${rows}</div>`;
+}
+function renderSync() {
+  return `
+    <div class="tab-header"><div><h2>Settings</h2><p class="tab-sub">Help, appearance &amp; backup</p></div></div>
+    <div class="section">
+      <div class="section-head"><h4>Help &amp; Getting Started</h4></div>
+      <button class="btn-primary" style="margin:0 0 12px;" onclick="showOnboarding()">View tutorial</button>
+      <p class="insight-text" style="margin-top:0;">Quick map of the app: <strong>Accounts</strong> hold your balances. <strong>Bills</strong>, <strong>Subscriptions</strong>, and loan payments reduce them; <strong>Paycheck</strong> and deposits add to them. <strong>Spending</strong> just records what money went to. <strong>Savings</strong>, <strong>Loans</strong>, and <strong>Taxes</strong> are their own tools, and <strong>Analytics</strong> ties it all together.</p>
+      <details class="help-item">
+        <summary>Bill vs. Subscription</summary>
+        <p>A Bill is any recurring or one-time charge — rent, utilities, a loan payment. A Subscription is specifically for services with a trial or renewal you want cancel-by reminders for. Monthly subscriptions can also generate a linked Bill so the charge shows up in Spending too.</p>
+      </details>
+      <details class="help-item">
+        <summary>Autopay</summary>
+        <p>Marking a bill as autopay doesn't charge anything automatically — it just makes the app prompt you to confirm once the due date arrives, so you can check it off (or say "not yet") without hunting for it.</p>
+      </details>
+      <details class="help-item">
+        <summary>Linked bills &amp; subscriptions</summary>
+        <p>A loan or subscription can generate its own recurring Bill entry, tagged LOAN or SUB. Paying that bill deducts the full amount from your account like normal — the link just saves you from entering the same charge twice.</p>
+      </details>
+      <details class="help-item">
+        <summary>Loan payments</summary>
+        <p>Each linked loan payment is automatically split into principal and interest based on the loan's current rate and balance. Only the interest portion is really a "cost" — principal is just converting cash into reduced debt.</p>
+      </details>
+      <details class="help-item">
+        <summary>What Analytics means</summary>
+        <p>Analytics recaps a chosen month, compares it to the one before, and charts trends. Net worth history is reconstructed from your logged activity, not tracked separately — see the note on that chart for its limits.</p>
+      </details>
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Customize navigation</h4></div>
+      <p class="fine-print" style="padding:0; margin-top:0;">Choose up to ${MAX_PINNED} tabs to pin in the bottom bar (at least 1 required). Everything else lives under More.</p>
+      ${renderNavCustomizer()}
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Appearance</h4></div>
+      <div class="segmented">
+        <button type="button" class="${themePref==='light'?'seg-active':''}" onclick="setTheme('light')">Light</button>
+        <button type="button" class="${themePref==='dark'?'seg-active':''}" onclick="setTheme('dark')">Dark</button>
+        <button type="button" class="${themePref==='system'?'seg-active':''}" onclick="setTheme('system')">System</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Lock</h4></div>
+      ${hasPinSet() ? `
+        <p class="fine-print" style="padding:0; margin-top:0;">A PIN is set on this device — it's asked for every time the app is opened.</p>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn-primary" style="margin:0; background: var(--steel)" onclick="openPinSheet('change')">Change PIN</button>
+          <button class="btn-danger" onclick="openPinSheet('remove')">Remove</button>
+        </div>
+      ` : `
+        <p class="fine-print" style="padding:0; margin-top:0;">Add a PIN so the app asks for a code each time it's opened. This is a simple local deterrent, not real encryption — it won't stop someone determined with developer tools, so don't rely on it for highly sensitive protection.</p>
+        <button class="btn-primary" style="margin-top:8px" onclick="openPinSheet('set')">Set a PIN</button>
+      `}
+    </div>
+    <p class="fine-print" style="margin-top:0">This app stores everything locally on this device only — there's no server, so nothing syncs automatically between your phone and PC. To move your data, export a backup here, then import it on the other device.</p>
+    <div class="section">
+      <div class="section-head"><h4>Export</h4></div>
+      <button class="btn-primary" style="margin:0" onclick="exportData()">&#11015; Download backup file</button>
+      <p class="fine-print" style="padding:0; margin-top:10px">If the download button doesn't do anything, use the text box instead — tap in, select all, and copy.</p>
+      <button class="btn-primary" style="margin:10px 0 0; background: var(--steel)" onclick="showExportText()">Show as text to copy</button>
+      <div id="export-text-wrap"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Import</h4></div>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)">
+      <button class="btn-primary" style="margin:0; background: var(--steel)" onclick="document.getElementById('import-file').click()">&#11014; Load backup file</button>
+      <p class="fine-print" style="padding:0; margin-top:10px">Or paste a backup you copied as text:</p>
+      <textarea id="import-paste" class="input mono" style="height:100px; resize:vertical;" placeholder="Paste backup JSON here"></textarea>
+      <button class="btn-primary" style="margin:10px 0 0" onclick="importPastedText()">Import pasted text</button>
+      <div id="import-confirm-area"></div>
+      <div id="sync-status" style="font-size:12.5px; margin-top:10px; min-height:16px;"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h4>Danger zone</h4></div>
+      <div style="border: 1px solid var(--rust); border-radius: 4px; padding: 12px 14px;">
+        <p class="fine-print" style="padding:0; margin-top:0;">Wipes every account, bill, transaction, loan, subscription, and goal on this device — useful for starting fresh or handing a blank copy to someone else. Your PIN and appearance setting aren't touched; remove those separately above if needed.</p>
+        <button class="btn-danger" style="margin-top:8px;" onclick="openClearAllSheet()">Clear all data</button>
+      </div>
+    </div>
+  `;
+}
+function openClearAllSheet() {
+  const html = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-title-row"><h3 class="sheet-title">Clear all data</h3><button class="icon-btn" onclick="closeSheet()">&#10005;</button></div>
+    <p class="insight-text" style="margin-top:0; color:var(--rust);">This permanently deletes every account, bill, transaction, loan, subscription, goal, and history entry stored on this device. It cannot be undone.</p>
+    <p class="fine-print" style="padding:0;">Consider exporting a backup first, from Export above.</p>
+    <button class="btn-danger" style="width:100%; justify-content:center; margin-top:6px;" onclick="confirmClearAll()">Yes, delete everything</button>
+  `;
+  openSheet(html);
+}
+function confirmClearAll() {
+  state.data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  saveData();
+  closeSheet();
+  renderAll();
+}
+function setSyncStatus(msg, isError) {
+  const el = document.getElementById('sync-status');
+  if (el) { el.textContent = msg; el.style.color = isError ? '#A13D2C' : '#2E5E45'; }
+}
+function showExportText() {
+  const json = JSON.stringify(state.data, null, 2);
+  document.getElementById('export-text-wrap').innerHTML = `
+    <textarea class="input mono" style="height:140px; resize:vertical; margin-top:10px;" readonly onclick="this.select()">${esc(json)}</textarea>
+    <button class="btn-primary" style="margin:10px 0 0; background: var(--steel)" onclick="copyExportText()">Copy to clipboard</button>
+  `;
+}
+function copyExportText() {
+  const ta = document.querySelector('#export-text-wrap textarea');
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value)
+      .then(() => setSyncStatus('Copied to clipboard.', false))
+      .catch(() => setSyncStatus("Could not auto-copy — the text is selected, so use your device's copy command.", false));
+  } else {
+    setSyncStatus("The text is selected — use your device's copy command.", false);
+  }
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setSyncStatus('If your browser allows downloads here, check your Downloads folder.', false);
+}
+function showImportConfirm(parsed, sourceLabel) {
+  pendingImport = parsed;
+  const counts = ['accounts','bills','transactions','goals','loans','paychecks'].map(k => `${(parsed[k]||[]).length} ${k}`).join(', ');
+  document.getElementById('import-confirm-area').innerHTML = `
+    <div class="fine-print" style="color:var(--rust); padding:0; margin-top:10px;">Loaded from ${sourceLabel}: ${counts}. This will replace everything currently on this device.</div>
+    <button class="btn-danger" style="width:100%; justify-content:center; margin-top:8px;" onclick="confirmImport()">Yes, replace my data</button>
+  `;
+  setSyncStatus('', false);
+}
+function confirmImport() {
+  if (!pendingImport) return;
+  state.data = Object.assign({}, DEFAULT_DATA, pendingImport);
+  pendingImport = null;
+  saveData();
+  renderAll();
+}
+function importPastedText() {
+  const raw = document.getElementById('import-paste').value.trim();
+  if (!raw) { setSyncStatus('Paste a backup into the box first.', true); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    showImportConfirm(parsed, 'pasted text');
+  } catch (e) {
+    setSyncStatus('Could not read that text — make sure you pasted the whole backup.', true);
+  }
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      showImportConfirm(parsed, file.name);
+    } catch (e) {
+      setSyncStatus("Could not read that file — make sure it's a backup exported from this app.", true);
+    }
+    event.target.value = '';
+  };
+  reader.onerror = () => setSyncStatus('Could not read that file from this device.', true);
+  reader.readAsText(file);
+}
+
+/* ---------------- lock ---------------- */
+const PIN_KEY = 'ledger-pin-hash';
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
+  return h.toString(36);
+}
+function getPinHash() { try { return localStorage.getItem(PIN_KEY) || ''; } catch (e) { return ''; } }
+function hasPinSet() { return !!getPinHash(); }
+function attemptUnlock() {
+  const val = document.getElementById('lock-input').value.trim();
+  if (val && simpleHash(val) === getPinHash()) {
+    document.getElementById('lock-screen').classList.add('hidden');
+    afterUnlock();
+  } else {
+    document.getElementById('lock-error').textContent = 'Incorrect PIN.';
+    document.getElementById('lock-input').value = '';
+    document.getElementById('lock-input').focus();
+  }
+}
+function openPinSheet(mode) {
+  const body = `
+    ${mode !== 'set' ? `<div class="field"><span class="field-label">Current PIN</span><input class="input mono" type="tel" inputmode="numeric" id="pin-current" placeholder="****"></div>` : ''}
+    ${mode !== 'remove' ? `
+    <div class="field"><span class="field-label">New PIN (4+ digits)</span><input class="input mono" type="tel" inputmode="numeric" id="pin-new" placeholder="****"></div>
+    <div class="field"><span class="field-label">Confirm new PIN</span><input class="input mono" type="tel" inputmode="numeric" id="pin-confirm" placeholder="****"></div>` : ''}
+    <div id="pin-error" class="fine-print" style="color:var(--rust); padding:0;"></div>
+  `;
+  openSheet(sheetShell(mode==='set' ? 'Set a PIN' : mode==='change' ? 'Change PIN' : 'Remove PIN', body, null));
+  submitSheet = () => submitPin(mode);
+}
+function submitPin(mode) {
+  const errEl = document.getElementById('pin-error');
+  const existingHash = getPinHash();
+  if (mode !== 'set') {
+    const cur = document.getElementById('pin-current').value;
+    if (simpleHash(cur) !== existingHash) { errEl.textContent = 'Current PIN is incorrect.'; return; }
+  }
+  if (mode === 'remove') {
+    try { localStorage.removeItem(PIN_KEY); } catch (e) {}
+    closeSheet(); renderAll(); return;
+  }
+  const n1 = document.getElementById('pin-new').value;
+  const n2 = document.getElementById('pin-confirm').value;
+  if (n1.length < 4) { errEl.textContent = 'Use at least 4 digits.'; return; }
+  if (n1 !== n2) { errEl.textContent = "PINs don't match."; return; }
+  try { localStorage.setItem(PIN_KEY, simpleHash(n1)); } catch (e) {}
+  closeSheet(); renderAll();
+}
+
+/* ---------------- init ---------------- */
+if (hasPinSet()) {
+  document.getElementById('lock-screen').classList.remove('hidden');
+  document.getElementById('lock-input').focus();
+} else {
+  afterUnlock();
+}
+</script>
+</body>
+</html>
