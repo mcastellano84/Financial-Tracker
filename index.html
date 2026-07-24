@@ -314,7 +314,7 @@ function payoffMonths(balance, apr, payment) {
 const DEFAULT_DATA = {
   accounts: [], bills: [], billPayments: [], transactions: [], goals: [], loans: [],
   paychecks: [], incomeLog: [], transfers: [], budgets: {}, adjustments: [], borrowLog: [],
-  subscriptions: [], autopayDismissed: [], loanPayments: [],
+  subscriptions: [], autopayDismissed: [], loanPayments: [], sharedExpenses: [],
   tax: { filingStatus: 'single', income: '', otherDeductions: '', withholding: '', credits: '',
          numChildren: '', numOtherDependents: '', careExpenses: '', careQualifying: '1' },
 };
@@ -374,6 +374,7 @@ const TABS = [
   { key: 'paycheck', label: 'Paycheck', icon: '&#128176;' },
   { key: 'savings', label: 'Savings', icon: '&#128230;' },
   { key: 'loans', label: 'Loans', icon: '&#128179;' },
+  { key: 'shared', label: 'Shared', icon: '&#129309;' },
   { key: 'taxes', label: 'Taxes', icon: '&#128202;' },
   { key: 'analytics', label: 'Analytics', icon: '&#128200;' },
   { key: 'sync', label: 'Settings', icon: '&#9881;' },
@@ -466,6 +467,7 @@ function renderAll() {
   else if (state.tab === 'paycheck') c.innerHTML = renderPaycheck();
   else if (state.tab === 'savings') c.innerHTML = renderSavings();
   else if (state.tab === 'loans') c.innerHTML = renderLoans();
+  else if (state.tab === 'shared') c.innerHTML = renderShared();
   else if (state.tab === 'taxes') c.innerHTML = renderTaxes();
   else if (state.tab === 'analytics') c.innerHTML = renderAnalytics();
   else if (state.tab === 'sync') c.innerHTML = renderSync();
@@ -1554,6 +1556,108 @@ function updatePayoffExtra(v) {
   const el = document.getElementById('payoff-results');
   if (el) el.innerHTML = renderPayoffResults();
 }
+/* ---------------- Shared expenses ---------------- */
+function renderShared() {
+  const d = state.data;
+  const entries = [...(d.sharedExpenses||[])].sort((a,b) => new Date(b.date) - new Date(a.date));
+  const unsettled = entries.filter(e => !e.settled);
+  const byPerson = {};
+  unsettled.forEach(e => {
+    byPerson[e.person] = (byPerson[e.person] || 0) + (e.direction === 'owed_to_me' ? e.amount : -e.amount);
+  });
+  const balances = Object.entries(byPerson).filter(([,net]) => Math.abs(net) > 0.005);
+
+  return `
+    <div class="tab-header"><div><h2>Shared expenses</h2><p class="tab-sub">${unsettled.length} unsettled</p></div>
+      <button class="fab-inline" onclick="openSharedSheet()">+</button></div>
+    <p class="fine-print" style="margin-top:0;">Tracks your side of costs split with someone who keeps their own separate finances. Settling here just clears the IOU — if money actually changed hands, log that separately under Accounts.</p>
+    ${balances.length ? `<div class="section"><div class="section-head"><h4>Balances</h4></div>
+      <div class="register">${balances.map(([person,net]) => `
+        <div class="register-row"><div class="register-left"><div class="register-title">${esc(person)}</div><div class="register-sub">${net>0?'Owes you':'You owe them'}</div></div><div class="register-leader"></div><div class="register-right" style="color:${net>0?'var(--green)':'var(--rust)'}">${fmt(Math.abs(net))}</div></div>`).join('')}</div>
+    </div>` : `<div class="empty-state" style="margin:0 16px;">All settled up.</div>`}
+    <div class="section">
+      <div class="section-head"><h4>All entries</h4></div>
+      ${entries.length === 0 ? `<div class="empty-state">No shared expenses logged yet.</div>` :
+        `<div class="register">${entries.map(e => `
+          <div class="register-row clickable" onclick="openSharedSheet('${e.id}')">
+            <button class="check-toggle" onclick="event.stopPropagation(); toggleSharedSettled('${e.id}')">${e.settled ? '&#9989;' : '&#9675;'}</button>
+            <div class="register-left"><div class="register-title ${e.settled?'done':''}">${esc(e.description || e.person)}</div><div class="register-sub">${esc(e.person)} &middot; ${new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})} &middot; ${e.direction==='owed_to_me'?'owes you':'you owe'}</div></div>
+            <div class="register-leader"></div><div class="register-right" style="color:${e.settled?'var(--muted)':(e.direction==='owed_to_me'?'var(--green)':'var(--rust)')}">${fmt(e.amount)}</div>
+          </div>`).join('')}</div>`}
+    </div>
+  `;
+}
+function openSharedSheet(id) {
+  const e = id ? state.data.sharedExpenses.find(x => x.id === id) : null;
+  const dir = e?.direction || 'owed_to_me';
+  const body = `
+    <div class="field"><span class="field-label">Person</span><input class="input" id="f-person" value="${esc(e?.person||'')}" placeholder="Name"></div>
+    <div class="field"><span class="field-label">What was it for</span><input class="input" id="f-desc" value="${esc(e?.description||'')}" placeholder="Dinner, rent split, groceries..."></div>
+    <div class="field"><span class="field-label">Total bill amount (optional)</span><input class="input mono" type="number" id="f-total" value="${e?.total??''}" placeholder="0.00" oninput="recalcSharedOwed()"></div>
+    <div class="field"><span class="field-label">Their share of it</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input class="input mono" type="number" id="f-splitpct" value="${e?.splitPct ?? 50}" placeholder="50" style="flex:1;" oninput="recalcSharedOwed()">
+        <span class="mono" style="font-size:13px;">%</span>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        ${[50,60,70,100].map(p => `<button type="button" class="icon-btn" style="width:auto; padding:0 10px; border-radius:4px; font-size:11px;" onclick="setSharedPct(${p})">${p}%</button>`).join('')}
+      </div>
+    </div>
+    <div class="field"><span class="field-label">Amount owed</span><input class="input mono" type="number" id="f-owed" value="${e?.amount??''}" placeholder="0.00"></div>
+    <div class="field"><span class="field-label">Who paid</span>
+      <div class="segmented" id="f-direction-seg">
+        <button type="button" class="${dir==='owed_to_me'?'seg-active':''}" onclick="setSharedDirection('owed_to_me')">I paid</button>
+        <button type="button" class="${dir==='i_owe'?'seg-active':''}" onclick="setSharedDirection('i_owe')">They paid</button>
+      </div>
+      <p class="fine-print" style="padding:0; margin-top:6px;" id="direction-hint">${dir==='owed_to_me' ? "They'll owe you this amount." : "You'll owe them this amount."}</p>
+    </div>
+    <div class="field"><span class="field-label">Date</span><input class="input mono" type="date" id="f-date" value="${e?.date || new Date().toISOString().slice(0,10)}"></div>`;
+  openSheet(sheetShell(e ? 'Edit shared expense' : 'Add shared expense', body, e ? `deleteShared('${e.id}')` : null));
+  window._sharedDirection = dir;
+  submitSheet = () => saveShared(id);
+}
+function setSharedDirection(dir) {
+  window._sharedDirection = dir;
+  document.querySelectorAll('#f-direction-seg button').forEach((btn,i) => btn.classList.toggle('seg-active', (i===0)===(dir==='owed_to_me')));
+  const hint = document.getElementById('direction-hint');
+  if (hint) hint.textContent = dir === 'owed_to_me' ? "They'll owe you this amount." : "You'll owe them this amount.";
+}
+function recalcSharedOwed() {
+  const totalEl = document.getElementById('f-total'), pctEl = document.getElementById('f-splitpct'), owedEl = document.getElementById('f-owed');
+  if (!totalEl || !pctEl || !owedEl) return;
+  const total = Number(totalEl.value), pct = Number(pctEl.value);
+  if (total && pct) owedEl.value = (total * pct / 100).toFixed(2);
+}
+function setSharedPct(p) {
+  const pctEl = document.getElementById('f-splitpct');
+  if (pctEl) pctEl.value = p;
+  recalcSharedOwed();
+}
+function saveShared(id) {
+  const person = document.getElementById('f-person').value.trim();
+  const amount = Number(document.getElementById('f-owed').value);
+  if (!person || !amount) return;
+  const existing = id ? state.data.sharedExpenses.find(x => x.id === id) : null;
+  const entry = {
+    id: id || uid(), person,
+    description: document.getElementById('f-desc').value.trim(),
+    total: Number(document.getElementById('f-total').value || 0),
+    splitPct: Number(document.getElementById('f-splitpct').value || 50),
+    amount, direction: window._sharedDirection,
+    date: document.getElementById('f-date').value,
+    settled: existing?.settled || false,
+  };
+  const exists = state.data.sharedExpenses.some(x => x.id === entry.id);
+  state.data.sharedExpenses = exists ? state.data.sharedExpenses.map(x => x.id===entry.id?entry:x) : [...state.data.sharedExpenses, entry];
+  closeSheet(); commit();
+}
+function deleteShared(id) { state.data.sharedExpenses = state.data.sharedExpenses.filter(x => x.id !== id); closeSheet(); commit(); }
+function toggleSharedSettled(id) {
+  const e = state.data.sharedExpenses.find(x => x.id === id);
+  if (e) e.settled = !e.settled;
+  commit();
+}
+
 function renderLoans() {
   const d = state.data;
   const total = d.loans.reduce((s,l) => s + Number(l.balance||0), 0);
